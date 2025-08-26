@@ -12,8 +12,8 @@ class ImageLoader {
     private let cache = NSCache<NSString, UIImage>()
     
     private init() {
-        cache.countLimit = 100
-        cache.totalCostLimit = 50 * 1024 * 1024
+        cache.countLimit = Constants.Cache.imageCountLimit
+        cache.totalCostLimit = Constants.Cache.imageTotalCostLimit
     }
     
     func loadImage(from urlString: String, completion: @escaping (UIImage?) -> Void) {
@@ -49,13 +49,19 @@ class ImageLoader {
 
 
 extension UIImageView {
-    func loadImage(from urlString: String?, placeholder: UIImage? = nil) {
+    func loadImage(from urlString: String?, placeholder: UIImage? = nil, completion: ((UIImage?) -> Void)? = nil) {
         self.image = placeholder
         
-        guard let urlString = urlString else {return }
+        guard let urlString = urlString else { 
+            completion?(nil)
+            return 
+        }
         
         ImageLoader.shared.loadImage(from: urlString) { [weak self] image in
-            self?.image = image ?? placeholder
+            DispatchQueue.main.async {
+                self?.image = image ?? placeholder
+                completion?(image)
+            }
         }
     }
 }

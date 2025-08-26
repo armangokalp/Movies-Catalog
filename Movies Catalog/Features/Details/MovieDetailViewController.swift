@@ -9,7 +9,7 @@ import UIKit
 
 class MovieDetailViewController: UIViewController {
     
-    private let movie: Movie
+    private let viewModel: MovieDetailViewModel
     
     private lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -33,7 +33,7 @@ class MovieDetailViewController: UIViewController {
     private lazy var gradientView: UIView = {
         let view = UIView()
         let gradientLayer = CAGradientLayer()
-        gradientLayer.colors = [UIColor.clear.cgColor, UIColor.systemBackground.cgColor]
+        gradientLayer.colors = [UIColor.clear.cgColor, Constants.Colors.background.cgColor]
         gradientLayer.locations = [0.0, 1.0]
         view.layer.addSublayer(gradientLayer)
         return view
@@ -43,42 +43,46 @@ class MovieDetailViewController: UIViewController {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 12
-        imageView.layer.borderWidth = 3
-        imageView.layer.borderColor = UIColor.systemBackground.cgColor
-        imageView.backgroundColor = UIColor.systemGray5
+        imageView.layer.cornerRadius = Constants.CornerRadius.medium
+        imageView.layer.borderWidth = Constants.Dimensions.borderWidth
+        imageView.layer.borderColor = Constants.Colors.background.cgColor
+        imageView.backgroundColor = Constants.Colors.placeholder
         return imageView
     }()
     
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 28, weight: .bold)
-        label.textColor = .label
+        label.font = Constants.Typography.boldTitle1()
+        label.textColor = Constants.Colors.label
         label.numberOfLines = 0
+        label.adjustsFontForContentSizeCategory = true
         return label
     }()
     
     private lazy var yearLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        label.textColor = .secondaryLabel
+        label.font = Constants.Typography.mediumBody()
+        label.textColor = Constants.Colors.secondaryLabel
+        label.adjustsFontForContentSizeCategory = true
         return label
     }()
     
     private lazy var ratingLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
-        label.textColor = .systemOrange
+        label.font = Constants.Typography.semiboldHeadline()
+        label.textColor = Constants.Colors.secondary
+        label.adjustsFontForContentSizeCategory = true
         return label
     }()
     
     private lazy var playButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("▶ Play Movie", for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
-        button.backgroundColor = .systemRed
+        button.titleLabel?.font = Constants.Typography.semiboldHeadline()
+        button.backgroundColor = Constants.Colors.primary
         button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 25
+        button.layer.cornerRadius = Constants.CornerRadius.xLarge
+        button.titleLabel?.adjustsFontForContentSizeCategory = true
         button.addTarget(self, action: #selector(playButtonTapped), for: .touchUpInside)
         return button
     }()
@@ -86,22 +90,24 @@ class MovieDetailViewController: UIViewController {
     private lazy var overviewTitleLabel: UILabel = {
         let label = UILabel()
         label.text = "Overview"
-        label.font = UIFont.systemFont(ofSize: 20, weight: .bold)
-        label.textColor = .label
+        label.font = Constants.Typography.title3
+        label.textColor = Constants.Colors.label
+        label.adjustsFontForContentSizeCategory = true
         return label
     }()
     
     private lazy var overviewLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 16, weight: .regular)
-        label.textColor = .label
+        label.font = Constants.Typography.body
+        label.textColor = Constants.Colors.label
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
+        label.adjustsFontForContentSizeCategory = true
         return label
     }()
     
     init(movie: Movie) {
-        self.movie = movie
+        self.viewModel = MovieDetailViewModel(movie: movie)
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -121,8 +127,9 @@ class MovieDetailViewController: UIViewController {
     }
     
     private func setupUI() {
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = Constants.Colors.background
         navigationController?.navigationBar.prefersLargeTitles = false
+        navigationController?.navigationBar.tintColor = Constants.Colors.primary
         
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
@@ -171,7 +178,7 @@ class MovieDetailViewController: UIViewController {
             backdropImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
             backdropImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             backdropImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            backdropImageView.heightAnchor.constraint(equalToConstant: 250),
+            backdropImageView.heightAnchor.constraint(equalToConstant: Constants.Dimensions.backdropHeight),
             
             // Gradient View
             gradientView.topAnchor.constraint(equalTo: backdropImageView.topAnchor),
@@ -180,18 +187,18 @@ class MovieDetailViewController: UIViewController {
             gradientView.bottomAnchor.constraint(equalTo: backdropImageView.bottomAnchor),
             
             // Poster Image
-            posterImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            posterImageView.bottomAnchor.constraint(equalTo: backdropImageView.bottomAnchor, constant: -20),
-            posterImageView.widthAnchor.constraint(equalToConstant: 100),
-            posterImageView.heightAnchor.constraint(equalToConstant: 150),
+            posterImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.Spacing.xLarge),
+            posterImageView.bottomAnchor.constraint(equalTo: backdropImageView.bottomAnchor, constant: -Constants.Spacing.xLarge),
+            posterImageView.widthAnchor.constraint(equalToConstant: Constants.Dimensions.detailPosterWidth),
+            posterImageView.heightAnchor.constraint(equalToConstant: Constants.Dimensions.detailPosterHeight),
             
             // Title Label
-            titleLabel.topAnchor.constraint(equalTo: backdropImageView.bottomAnchor, constant: 20),
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            titleLabel.topAnchor.constraint(equalTo: backdropImageView.bottomAnchor, constant: Constants.Spacing.xLarge),
+            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.Spacing.xLarge),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.Spacing.xLarge),
             
             // Year Label
-            yearLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            yearLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: Constants.Spacing.small),
             yearLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             
             // Rating Label
@@ -199,33 +206,40 @@ class MovieDetailViewController: UIViewController {
             ratingLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
             
             // Play Button
-            playButton.topAnchor.constraint(equalTo: yearLabel.bottomAnchor, constant: 24),
-            playButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            playButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            playButton.heightAnchor.constraint(equalToConstant: 50),
+            playButton.topAnchor.constraint(equalTo: yearLabel.bottomAnchor, constant: Constants.Spacing.xxLarge),
+            playButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.Spacing.xLarge),
+            playButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.Spacing.xLarge),
+            playButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.buttonHeight),
             
             // Overview Title
-            overviewTitleLabel.topAnchor.constraint(equalTo: playButton.bottomAnchor, constant: 32),
-            overviewTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            overviewTitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            overviewTitleLabel.topAnchor.constraint(equalTo: playButton.bottomAnchor, constant: Constants.Spacing.xxxLarge),
+            overviewTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.Spacing.xLarge),
+            overviewTitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.Spacing.xLarge),
             
             // Overview Label
-            overviewLabel.topAnchor.constraint(equalTo: overviewTitleLabel.bottomAnchor, constant: 12),
-            overviewLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            overviewLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            overviewLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -32)
+            overviewLabel.topAnchor.constraint(equalTo: overviewTitleLabel.bottomAnchor, constant: Constants.Spacing.medium),
+            overviewLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Constants.Spacing.xLarge),
+            overviewLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Constants.Spacing.xLarge),
+            overviewLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Constants.Spacing.xxxLarge)
         ])
     }
     
     private func configureWithMovie() {
         
-        titleLabel.text = movie.title
-        yearLabel.text = movie.formattedReleaseYear
-        ratingLabel.text = "⭐ \(movie.formattedRating)"
-        overviewLabel.text = movie.overview
+        titleLabel.text = viewModel.title
+        yearLabel.text = viewModel.year
+        ratingLabel.text = viewModel.rating
+        overviewLabel.text = viewModel.overview
         
-        backdropImageView.loadImage(from: movie.fullBackdropURL, placeholder: UIImage(systemName: "photo"))
-        posterImageView.loadImage(from: movie.fullPosterURL, placeholder: UIImage(systemName: "photo"))
+        backdropImageView.loadImage(
+            from: viewModel.backdropURL,
+            placeholder: UIImage(systemName: "")
+        )
+        posterImageView.loadImage(
+            from: viewModel.posterURL,
+            placeholder: UIImage(systemName: "popcorn")?
+                .withTintColor(Constants.Colors.primary, renderingMode: .alwaysOriginal)
+        )
     }
     
     private func updateGradientFrame() {
@@ -235,7 +249,8 @@ class MovieDetailViewController: UIViewController {
     }
     
     @objc private func playButtonTapped() {
-        let playerVC = MoviePlayerViewController()
+        let playerVC = viewModel.playMovie()
+        playerVC.modalPresentationStyle = .fullScreen
         present(playerVC, animated: true)
     }
 }

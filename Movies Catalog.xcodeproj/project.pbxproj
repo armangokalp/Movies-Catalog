@@ -33,7 +33,7 @@
 		40E135D42E5C563F00D1D104 /* Exceptions for "Movies Catalog" folder in "Movies Catalog" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
+				Resources/Info.plist,
 			);
 			target = 40E135A82E5C563A00D1D104 /* Movies Catalog */;
 		};
@@ -291,7 +291,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TSANYDZ8C4;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Movies Catalog/Info.plist";
+				INFOPLIST_FILE = "Movies Catalog/Resources/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Movies+";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -326,7 +326,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TSANYDZ8C4;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Movies Catalog/Info.plist";
+				INFOPLIST_FILE = "Movies Catalog/Resources/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Movies+";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

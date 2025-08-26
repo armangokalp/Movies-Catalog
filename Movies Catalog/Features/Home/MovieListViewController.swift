@@ -9,9 +9,7 @@ import UIKit
 
 class MovieListViewController: UIViewController {
     
-    private var moviesByCategory: [MovieCategory: [Movie]] = [:]
-    private let apiService = APIService.shared
-    
+    private let viewModel = MovieListViewModel()
     
     private lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -32,28 +30,43 @@ class MovieListViewController: UIViewController {
         return stackView
     }()
     
+    private lazy var loadingIndicator: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .large)
+        indicator.hidesWhenStopped = true
+        indicator.color = Constants.Colors.secondary
+        return indicator
+    }()
+    
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        loadMovies()
+        setupBindings()
+        viewModel.loadMovies()
     }
     
     
     
     private func setupUI() {
-        view.backgroundColor = .systemBackground
-        title = "Movies Catalog"
+        view.backgroundColor = Constants.Colors.background
+        
+        let logoImageView = UIImageView(image: UIImage(systemName: "film.fill"))
+        logoImageView.contentMode = .scaleAspectFill
+        logoImageView.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        logoImageView.tintColor = Constants.Colors.primary
+        navigationItem.titleView = logoImageView
         navigationController?.navigationBar.prefersLargeTitles = false
         
         view.addSubview(scrollView)
+        view.addSubview(loadingIndicator)
         scrollView.addSubview(contentView)
         contentView.addSubview(stackView)
         
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
         stackView.translatesAutoresizingMaskIntoConstraints = false
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -70,37 +83,39 @@ class MovieListViewController: UIViewController {
             stackView.topAnchor.constraint(equalTo: contentView.topAnchor),
             stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            
+            loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
     
     
     
-    private func loadMovies() {
-        let group = DispatchGroup()
-        
-        for category in MovieCategory.allCases {
-            group.enter()
-            apiService.fetchMovies(category: category) { [weak self] result in
-                defer { group.leave() }
-                
-                switch result {
-                case .success(let response):
-                    self?.moviesByCategory[category] = response.results
-                case .failure(let error):
-                    print("Failed to load \(category.displayName): \(error)")
-                }
-            }
+    private func setupBindings() {
+        viewModel.onDataUpdated = { [weak self] in
+            self?.setupCategorySections()
         }
         
-        group.notify(queue: .main) {
-            self.setupCategorySections()
+        viewModel.onError = { errorMessage in
+            print(errorMessage)
+        }
+        
+        viewModel.onLoadingStateChanged = { [weak self] isLoading in
+            if isLoading {
+                self?.loadingIndicator.startAnimating()
+                self?.scrollView.alpha = 0.5
+            } else {
+                self?.loadingIndicator.stopAnimating()
+                self?.scrollView.alpha = 1.0
+            }
         }
     }
     
     private func setupCategorySections() {
         for category in MovieCategory.allCases {
-            guard let movies = moviesByCategory[category], !movies.isEmpty else { continue }
+            let movies = viewModel.getMovies(for: category)
+            guard !movies.isEmpty else { continue }
             
             let sectionView = createCategorySection(for: category, movies: movies)
             stackView.addArrangedSubview(sectionView)
@@ -113,15 +128,16 @@ class MovieListViewController: UIViewController {
         // Category title
         let titleLabel = UILabel()
         titleLabel.text = category.displayName
-        titleLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
-        titleLabel.textColor = .label
+        titleLabel.font = Constants.Typography.boldTitle3()
+        titleLabel.textColor = Constants.Colors.label
+        titleLabel.adjustsFontForContentSizeCategory = true
         
         // Collection view
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
-        layout.itemSize = CGSize(width: 120, height: 200)
-        layout.minimumLineSpacing = 2
-        layout.sectionInset = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
+        layout.itemSize = CGSize(width: Constants.Dimensions.posterWidth, height: Constants.Dimensions.posterHeight)
+        layout.minimumLineSpacing = Constants.Spacing.tiny
+        layout.sectionInset = UIEdgeInsets(top: 0, left: Constants.Spacing.tiny, bottom: 0, right: Constants.Spacing.tiny)
         
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .clear
@@ -139,14 +155,14 @@ class MovieListViewController: UIViewController {
         
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -4),
+            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.Spacing.tiny),
+            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -Constants.Spacing.tiny),
             
-            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: Constants.Spacing.small),
             collectionView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            collectionView.heightAnchor.constraint(equalToConstant: 200),
-            collectionView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            collectionView.heightAnchor.constraint(equalToConstant: Constants.Dimensions.posterHeight),
+            collectionView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -Constants.Spacing.large)
         ])
         
         return containerView
@@ -161,20 +177,18 @@ class MovieListViewController: UIViewController {
 extension MovieListViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         guard let category = getCategoryFromTag(collectionView.tag) else { return 0 }
-        return moviesByCategory[category]?.count ?? 0
+        return viewModel.getMovies(for: category).count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MovieCollectionViewCell.identifier, for: indexPath) as! MovieCollectionViewCell
         
         guard let category = getCategoryFromTag(collectionView.tag),
-              let movies = moviesByCategory[category] else {
+              let movie = viewModel.getMovie(for: category, at: indexPath.item) else {
             return cell
         }
         
-        let movie = movies[indexPath.item]
         cell.configure(with: movie)
-        
         return cell
     }
 }
@@ -183,9 +197,8 @@ extension MovieListViewController: UICollectionViewDataSource {
 extension MovieListViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let category = getCategoryFromTag(collectionView.tag),
-              let movies = moviesByCategory[category] else { return }
+              let movie = viewModel.getMovie(for: category, at: indexPath.item) else { return }
         
-        let movie = movies[indexPath.item]
         let detailVC = MovieDetailViewController(movie: movie)
         navigationController?.pushViewController(detailVC, animated: true)
     }

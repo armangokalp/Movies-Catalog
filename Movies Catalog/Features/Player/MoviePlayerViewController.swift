@@ -8,16 +8,19 @@
 import UIKit
 import AVKit
 import AVFoundation
+import Combine
 
+/**
+ * MoviePlayerViewController
+ * 
+ * Video player screen with custom controls for movie playback.
+ * Features play/pause, seeking, progress tracking, and auto-hiding controls.
+ * Uses MVVM architecture with MoviePlayerViewModel for business logic.
+ */
 class MoviePlayerViewController: UIViewController {
-    
-    private var player: AVPlayer?
+    private let viewModel = MoviePlayerViewModel()
     private var playerLayer: AVPlayerLayer?
-    private var isPlaying = false
-    private var timeObserver: Any?
-    
-    private let videoURL = URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8")!
-    
+    private var cancellables = Set<AnyCancellable>()
     
     private lazy var playerContainerView: UIView = {
         let view = UIView()
@@ -27,7 +30,7 @@ class MoviePlayerViewController: UIViewController {
     
     private lazy var controlsContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        view.backgroundColor = Constants.Colors.overlay
         view.alpha = 0
         return view
     }()
@@ -36,9 +39,24 @@ class MoviePlayerViewController: UIViewController {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "play.fill"), for: .normal)
         button.tintColor = .white
-        button.contentHorizontalAlignment = .center
-        button.contentVerticalAlignment = .center
+     
         button.addTarget(self, action: #selector(playPauseButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var backTrackButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "backward.fill"), for: .normal)
+        button.tintColor = .white
+        button.addTarget(self, action: #selector(backwardsButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var forwardButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "forward.fill"), for: .normal)
+        button.tintColor = .white
+        button.addTarget(self, action: #selector(forwardsButtonTapped), for: .touchUpInside)
         return button
     }()
     
@@ -46,19 +64,18 @@ class MoviePlayerViewController: UIViewController {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "xmark"), for: .normal)
         button.tintColor = .white
-        button.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        button.layer.cornerRadius = 20
+        button.backgroundColor = Constants.Colors.controlsBackground
+        button.layer.cornerRadius = Constants.CornerRadius.large
         button.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
         return button
     }()
     
     private lazy var progressSlider: UISlider = {
         let slider = UISlider()
-        slider.minimumTrackTintColor = .systemRed
+        slider.minimumTrackTintColor = Constants.Colors.primary
         slider.maximumTrackTintColor = .white.withAlphaComponent(0.3)
-        slider.thumbTintColor = .systemRed
+        slider.thumbTintColor = Constants.Colors.primary
         slider.addTarget(self, action: #selector(progressSliderChanged(_:)), for: .valueChanged)
-        slider.addTarget(self, action: #selector(progressSliderTouchBegan(_:)), for: .touchDown)
         slider.addTarget(self, action: #selector(progressSliderTouchEnded(_:)), for: [.touchUpInside, .touchUpOutside])
         return slider
     }()
@@ -68,6 +85,7 @@ class MoviePlayerViewController: UIViewController {
         label.text = "00:00"
         label.textColor = .white
         label.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
+        label.adjustsFontForContentSizeCategory = true
         return label
     }()
     
@@ -76,23 +94,22 @@ class MoviePlayerViewController: UIViewController {
         label.text = "00:00"
         label.textColor = .white
         label.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
+        label.adjustsFontForContentSizeCategory = true
         return label
     }()
-    
-    private var controlsTimer: Timer?
-    private var isSeeking = false
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupPlayer()
+        setupPlayerLayer()
         setupGestures()
+        configureBindings()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Support both orientations
+        
         if let windowScene = view.window?.windowScene {
             windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .allButUpsideDown))
         }
@@ -105,7 +122,7 @@ class MoviePlayerViewController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        cleanupPlayer()
+        // ViewModel handles cleanup automatically
     }
     
     
@@ -118,6 +135,8 @@ class MoviePlayerViewController: UIViewController {
         view.addSubview(closeButton)
         
         controlsContainerView.addSubview(playPauseButton)
+        controlsContainerView.addSubview(backTrackButton)
+        controlsContainerView.addSubview(forwardButton)
         controlsContainerView.addSubview(progressSlider)
         controlsContainerView.addSubview(currentTimeLabel)
         controlsContainerView.addSubview(durationLabel)
@@ -130,6 +149,8 @@ class MoviePlayerViewController: UIViewController {
         controlsContainerView.translatesAutoresizingMaskIntoConstraints = false
         closeButton.translatesAutoresizingMaskIntoConstraints = false
         playPauseButton.translatesAutoresizingMaskIntoConstraints = false
+        backTrackButton.translatesAutoresizingMaskIntoConstraints = false
+        forwardButton.translatesAutoresizingMaskIntoConstraints = false
         progressSlider.translatesAutoresizingMaskIntoConstraints = false
         currentTimeLabel.translatesAutoresizingMaskIntoConstraints = false
         durationLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -148,56 +169,52 @@ class MoviePlayerViewController: UIViewController {
             controlsContainerView.heightAnchor.constraint(equalToConstant: 100),
             
             // Close Button
-            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            closeButton.widthAnchor.constraint(equalToConstant: 40),
-            closeButton.heightAnchor.constraint(equalToConstant: 40),
+            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
+            closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.Spacing.large),
+            closeButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
+            closeButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
             
             // Play/Pause
             playPauseButton.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
-            playPauseButton.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor, constant: -10),
-            playPauseButton.widthAnchor.constraint(equalToConstant: 50),
-            playPauseButton.heightAnchor.constraint(equalToConstant: 50),
+            playPauseButton.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor, constant: -Constants.Spacing.small),
+            playPauseButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.playButtonSize),
+            playPauseButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.playButtonSize),
+            
+            // Backward
+            backTrackButton.trailingAnchor.constraint(equalTo: playPauseButton.leadingAnchor,
+                                                      constant: -Constants.Spacing.small),
+            backTrackButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
+
+            // Forward
+            forwardButton.leadingAnchor.constraint(equalTo: playPauseButton.trailingAnchor,
+                                                   constant: Constants.Spacing.small),
+            forwardButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
+
             
             // Current Time Label
-            currentTimeLabel.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: 16),
-            currentTimeLabel.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -16),
+            currentTimeLabel.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: Constants.Spacing.large),
+            currentTimeLabel.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -Constants.Spacing.large),
             
             // Duration Label
-            durationLabel.trailingAnchor.constraint(equalTo: controlsContainerView.trailingAnchor, constant: -16),
-            durationLabel.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -16),
+            durationLabel.trailingAnchor.constraint(equalTo: controlsContainerView.trailingAnchor, constant: -Constants.Spacing.large),
+            durationLabel.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -Constants.Spacing.large),
             
             // Progress Slider
-            progressSlider.leadingAnchor.constraint(equalTo: currentTimeLabel.trailingAnchor, constant: 12),
-            progressSlider.trailingAnchor.constraint(equalTo: durationLabel.leadingAnchor, constant: -12),
+            progressSlider.leadingAnchor.constraint(equalTo: currentTimeLabel.trailingAnchor, constant: Constants.Spacing.medium),
+            progressSlider.trailingAnchor.constraint(equalTo: durationLabel.leadingAnchor, constant: -Constants.Spacing.medium),
             progressSlider.centerYAnchor.constraint(equalTo: currentTimeLabel.centerYAnchor)
         ])
     }
     
-    private func setupPlayer() {
-        player = AVPlayer(url: videoURL)
+    private func setupPlayerLayer() {
+        guard let player = viewModel.player else { return }
+        
         playerLayer = AVPlayerLayer(player: player)
         playerLayer?.videoGravity = .resizeAspect
         
         if let playerLayer = playerLayer {
             playerContainerView.layer.addSublayer(playerLayer)
         }
-        
-        // Add time observer
-        let interval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
-        timeObserver = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            self?.updateProgress()
-        }
-        
-        // Observe player status
-        player?.addObserver(self, forKeyPath: "status", options: .new, context: nil)
-        player?.addObserver(self, forKeyPath: "currentItem.duration", options: .new, context: nil)
-        
-        // Autoplay
-        player?.play()
-        isPlaying = true
-        updatePlayPauseButton()
-        showControlsTemporarily()
     }
     
     private func setupGestures() {
@@ -207,127 +224,75 @@ class MoviePlayerViewController: UIViewController {
     
 
     @objc private func playPauseButtonTapped() {
-        if isPlaying {
-            player?.pause()
-        } else {
-            player?.play()
-        }
-        isPlaying.toggle()
-        updatePlayPauseButton()
-        showControlsTemporarily()
+        viewModel.togglePlayPause()
     }
-    
+    @objc private func backwardsButtonTapped() {
+        viewModel.backward()
+    }
+    @objc private func forwardsButtonTapped() {
+        viewModel.forward()
+    }
     @objc private func closeButtonTapped() {
         dismiss(animated: true)
     }
-    
     @objc private func playerViewTapped() {
-        toggleControlsVisibility()
+        viewModel.toggleControlsVisibility()
     }
-    
     @objc private func progressSliderChanged(_ slider: UISlider) {
-        guard let duration = player?.currentItem?.duration else { return }
-        let totalSeconds = CMTimeGetSeconds(duration)
-        let value = Float64(slider.value) * totalSeconds
-        let seekTime = CMTime(value: CMTimeValue(value), timescale: 1)
-        currentTimeLabel.text = formatTime(seekTime)
+        viewModel.seek(to: slider.value)
     }
-    
-    @objc private func progressSliderTouchBegan(_ slider: UISlider) {
-        isSeeking = true
-    }
-    
     @objc private func progressSliderTouchEnded(_ slider: UISlider) {
-        guard let duration = player?.currentItem?.duration else { return }
-        let totalSeconds = CMTimeGetSeconds(duration)
-        let value = Float64(slider.value) * totalSeconds
-        let seekTime = CMTime(value: CMTimeValue(value), timescale: 1)
-        
-        player?.seek(to: seekTime) { [weak self] _ in
-            self?.isSeeking = false
-        }
-        showControlsTemporarily()
+        viewModel.seek(to: slider.value)
     }
     
-    // Helpers
-    private func updatePlayPauseButton() {
-        let imageName = isPlaying ? "pause.fill" : "play.fill"
-        playPauseButton.setImage(UIImage(systemName: imageName), for: .normal)
-    }
     
-    private func updateProgress() {
-        guard !isSeeking,
-              let currentTime = player?.currentTime(),
-              let duration = player?.currentItem?.duration,
-              CMTimeGetSeconds(duration) > 0 else { return }
-        
-        let currentSeconds = CMTimeGetSeconds(currentTime)
-        let totalSeconds = CMTimeGetSeconds(duration)
-        
-        progressSlider.value = Float(currentSeconds / totalSeconds)
-        currentTimeLabel.text = formatTime(currentTime)
-        durationLabel.text = formatTime(duration)
-    }
-    
-    private func formatTime(_ time: CMTime) -> String {
-        let seconds = CMTimeGetSeconds(time)
-        let mins = Int(seconds / 60)
-        let secs = Int(seconds.truncatingRemainder(dividingBy: 60))
-        return String(format: "%02d:%02d", mins, secs)
-    }
-    
-    private func toggleControlsVisibility() {
-        let isVisible = controlsContainerView.alpha > 0
-        
-        UIView.animate(withDuration: 0.3) {
-            self.controlsContainerView.alpha = isVisible ? 0 : 1
-            self.closeButton.alpha = isVisible ? 0 : 1
-        }
-        
-        if !isVisible {
-            showControlsTemporarily()
-        }
-    }
-    
-    private func showControlsTemporarily() {
-        controlsTimer?.invalidate()
-        
-        UIView.animate(withDuration: 0.3) {
-            self.controlsContainerView.alpha = 1
-            self.closeButton.alpha = 1
-        }
-        
-        controlsTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
-            UIView.animate(withDuration: 0.3) {
-                self?.controlsContainerView.alpha = 0
-                self?.closeButton.alpha = 0
+    // data binding
+    private func configureBindings() {
+        viewModel.$isPlaying
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isPlaying in
+                let imageName = isPlaying ? "pause.fill" : "play.fill"
+                self?.playPauseButton.setImage(UIImage(systemName: imageName), for: .normal)
             }
-        }
-    }
-    
-    private func cleanupPlayer() {
-        controlsTimer?.invalidate()
+            .store(in: &cancellables)
         
-        if let timeObserver = timeObserver {
-            player?.removeTimeObserver(timeObserver)
-        }
-        
-        player?.removeObserver(self, forKeyPath: "status")
-        player?.removeObserver(self, forKeyPath: "currentItem.duration")
-        player?.pause()
-        player = nil
-        playerLayer?.removeFromSuperlayer()
-        playerLayer = nil
-    }
-    
-
-    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-        if keyPath == "status" {
-            if player?.status == .readyToPlay {
-                updateProgress()
+        viewModel.$playbackProgress
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] progress in
+                self?.progressSlider.value = progress
             }
-        } else if keyPath == "currentItem.duration" {
-            updateProgress()
+            .store(in: &cancellables)
+        
+        viewModel.$currentTimeText
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] timeText in
+                self?.currentTimeLabel.text = timeText
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$durationText
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] durationText in
+                self?.durationLabel.text = durationText
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$controlsVisible
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isVisible in
+                self?.animateControlsVisibility(isVisible: isVisible)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.onPlayerReady = { [weak self] in
+            self?.viewModel.play()
+        }
+    }
+    
+    private func animateControlsVisibility(isVisible: Bool) {
+        UIView.animate(withDuration: Constants.Animation.defaultDuration) {
+            self.controlsContainerView.alpha = isVisible ? 1 : 0
+            self.closeButton.alpha = isVisible ? 1 : 0
         }
     }
 }

@@ -13,6 +13,8 @@ class APIService {
     private let baseURL = "https://api.themoviedb.org/3"
     private let apiKey = "8537cf09d8c5dd833338467f049a0aa7"
     
+    private init() {    }
+    
     
     func fetchMovies(category: MovieCategory, page: Int = 1, completion: @escaping (Result<MoviesResponse, Error>) -> Void) {
         guard let url = buildURL(for: category, page: page) else {
