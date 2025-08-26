@@ -37,6 +37,40 @@ class MovieListViewController: UIViewController {
         return indicator
     }()
     
+    private lazy var appLogoImageView: UIImageView = {
+        let logoImageView = UIImageView(image: UIImage(systemName: "film.fill"))
+        logoImageView.contentMode = .scaleAspectFill
+        logoImageView.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        logoImageView.tintColor = Constants.Colors.primary
+        
+        return logoImageView
+    }()
+    
+    private lazy var navBarGradientDivider: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            Constants.Colors.primary.withAlphaComponent(0.15).cgColor,
+            Constants.Colors.primary.cgColor,
+            Constants.Colors.primary.withAlphaComponent(0.15).cgColor
+        ]
+        gradient.startPoint = CGPoint(x: 0, y: 0.5)
+        gradient.endPoint = CGPoint(x: 1, y: 0.5)
+        gradient.locations = [0, 0.5, 1]
+        
+        view.layer.addSublayer(gradient)
+        
+        view.layer.shadowColor = Constants.Colors.primary.cgColor
+        view.layer.shadowOffset = .zero
+        view.layer.shadowOpacity = 0.5
+        view.layer.shadowRadius = 4
+        view.layer.zPosition = 1
+        
+        return view
+    }()
+    
     
     
     override func viewDidLoad() {
@@ -46,22 +80,23 @@ class MovieListViewController: UIViewController {
         viewModel.loadMovies()
     }
     
-    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        navBarGradientDivider.layer.sublayers?.first?.frame = navBarGradientDivider.bounds
+    }
     
     private func setupUI() {
         view.backgroundColor = Constants.Colors.background
         
-        let logoImageView = UIImageView(image: UIImage(systemName: "film.fill"))
-        logoImageView.contentMode = .scaleAspectFill
-        logoImageView.heightAnchor.constraint(equalToConstant: 32).isActive = true
-        logoImageView.tintColor = Constants.Colors.primary
-        navigationItem.titleView = logoImageView
+        navigationItem.titleView = appLogoImageView
         navigationController?.navigationBar.prefersLargeTitles = false
+        
         
         view.addSubview(scrollView)
         view.addSubview(loadingIndicator)
         scrollView.addSubview(contentView)
         contentView.addSubview(stackView)
+        stackView.addSubview(navBarGradientDivider)
         
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
@@ -69,12 +104,17 @@ class MovieListViewController: UIViewController {
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
+            navBarGradientDivider.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            navBarGradientDivider.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navBarGradientDivider.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navBarGradientDivider.heightAnchor.constraint(equalToConstant: 2),
+            
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: Constants.Spacing.large),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),

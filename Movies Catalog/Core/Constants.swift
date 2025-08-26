@@ -30,7 +30,6 @@ struct Constants {
     struct Dimensions {
         static let posterWidth: CGFloat = 120
         static let posterHeight: CGFloat = 200
-        static let posterAspectRatio: CGFloat = 1.5
         static let backdropHeight: CGFloat = 250
         static let detailPosterWidth: CGFloat = 100
         static let detailPosterHeight: CGFloat = 150
