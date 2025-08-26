@@ -90,7 +90,7 @@ class MovieListViewController: UIViewController {
         
         navigationItem.titleView = appLogoImageView
         navigationController?.navigationBar.prefersLargeTitles = false
-        
+        navigationController?.navigationBar.isTranslucent = false
         
         view.addSubview(scrollView)
         view.addSubview(loadingIndicator)
