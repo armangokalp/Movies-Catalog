@@ -31,8 +31,8 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = Constants.CornerRadius.small
         imageView.backgroundColor = Constants.Colors.placeholder
+        imageView.layer.cornerRadius = Constants.CornerRadius.small
         return imageView
     }()
     
@@ -78,20 +78,19 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
     
 
     func configure(with movie: Movie) {
-        accessibilityLabel = "Movie: \(movie.title)"
-        accessibilityHint = "Double tap to view movie details"
+      //  accessibilityLabel = "Movie: \(movie.title)"
+      //  accessibilityHint = "Double tap to view movie details"
         
         loadingIndicator.startAnimating()
         
         posterImageView.loadImage(
-            from: movie.fullPosterURL,
-            placeholder: UIImage(systemName: "popcorn")?
-                .withTintColor(Constants.Colors.primary, renderingMode: .alwaysOriginal)
+            from: movie.fullPosterURL
         ) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.loadingIndicator.stopAnimating()
             }
         }
+
     }
     
 

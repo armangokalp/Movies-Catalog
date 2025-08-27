@@ -119,6 +119,7 @@ class MovieDetailViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         configureWithMovie()
+        view.setGradientBackground([Constants.Colors.background,Constants.Colors.background, Constants.Colors.secondaryBackground])
     }
     
     override func viewDidLayoutSubviews() {
@@ -233,24 +234,39 @@ class MovieDetailViewController: UIViewController {
         
         backdropImageView.loadImage(
             from: viewModel.backdropURL,
-            placeholder: UIImage(systemName: "")
+            placeholderColors: [Constants.Colors.placeholder.cgColor, Constants.Colors.background.cgColor]
         )
         posterImageView.loadImage(
-            from: viewModel.posterURL,
-            placeholder: UIImage(systemName: "popcorn")?
-                .withTintColor(Constants.Colors.primary, renderingMode: .alwaysOriginal)
+            from: viewModel.posterURL
         )
     }
     
     private func updateGradientFrame() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true) // disable animation
         if let gradientLayer = gradientView.layer.sublayers?.first as? CAGradientLayer {
             gradientLayer.frame = gradientView.bounds
         }
+        CATransaction.commit()
     }
     
     @objc private func playButtonTapped() {
         let playerVC = viewModel.playMovie()
         playerVC.modalPresentationStyle = .fullScreen
+            
+//        forcePortrait()
+        
         present(playerVC, animated: true)
     }
+    
+    /*private func forcePortrait() {
+        // MovieDetailVC stays portrait after dismissing MoviePlayerVC
+        CATransaction.begin()
+        CATransaction.setDisableActions(true) // disable animation
+        if let windowScene = view.window?.windowScene {
+            windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+        }
+        CATransaction.commit()
+    }*/
+
 }

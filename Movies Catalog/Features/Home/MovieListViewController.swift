@@ -78,6 +78,7 @@ class MovieListViewController: UIViewController {
         setupUI()
         setupBindings()
         viewModel.loadMovies()
+        view.setGradientBackground([Constants.Colors.background, Constants.Colors.secondaryBackground])
     }
     
     override func viewDidLayoutSubviews() {
@@ -86,7 +87,7 @@ class MovieListViewController: UIViewController {
     }
     
     private func setupUI() {
-        view.backgroundColor = Constants.Colors.background
+        //view.backgroundColor = Constants.Colors.background
         
         navigationItem.titleView = appLogoImageView
         navigationController?.navigationBar.prefersLargeTitles = false

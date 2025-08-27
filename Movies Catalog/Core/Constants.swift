@@ -92,9 +92,10 @@ extension Constants {
         static let primary = UIColor.systemRed
         static let secondary = UIColor.systemOrange
         static let background = UIColor.systemBackground
+        static let secondaryBackground = UIColor.secondarySystemBackground
         static let label = UIColor.label
         static let secondaryLabel = UIColor.secondaryLabel
-        static let placeholder = UIColor.systemGray5
+        static let placeholder = UIColor(red: 0.07, green: 0.05, blue: 0.06, alpha: 1)
         static let overlay = UIColor.black.withAlphaComponent(0.5)
         static let controlsBackground = UIColor.black.withAlphaComponent(0.6)
     }

@@ -49,8 +49,9 @@ class ImageLoader {
 
 
 extension UIImageView {
-    func loadImage(from urlString: String?, placeholder: UIImage? = nil, completion: ((UIImage?) -> Void)? = nil) {
-        self.image = placeholder
+    func loadImage(from urlString: String?, placeholderColors: [CGColor] = [Constants.Colors.label.cgColor, Constants.Colors.placeholder.cgColor], completion: ((UIImage?) -> Void)? = nil) {
+        
+        createGradientPlaceholder(placeholderColors)
         
         guard let urlString = urlString else { 
             completion?(nil)
@@ -59,9 +60,43 @@ extension UIImageView {
         
         ImageLoader.shared.loadImage(from: urlString) { [weak self] image in
             DispatchQueue.main.async {
-                self?.image = image ?? placeholder
+                if let loadedImage = image {
+                    self?.removeGradientPlaceholder()
+                    self?.image = loadedImage
+                } else {
+                    self?.image = UIImage(named: "")
+                }
                 completion?(image)
             }
+        }
+    }
+    
+    private func createGradientPlaceholder(_ gradientColors: [CGColor]) {
+        //removeGradientPlaceholder()
+        
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.colors = gradientColors
+        gradientLayer.locations = [0.0, 1.0]
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
+        gradientLayer.cornerRadius = layer.cornerRadius
+        gradientLayer.name = "placeholderGradient"
+        
+        let icon = UIImageView(image: UIImage(systemName: "film.fill"))
+        icon.tintColor = Constants.Colors.primary
+        
+        // Set frame in layoutSubviews to ensure proper sizing
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            gradientLayer.frame = self.bounds
+            self.layer.insertSublayer(gradientLayer, at: 0)
+            //gradientLayer.insertSublayer(icon, at: 0)
+        }
+    }
+    
+    private func removeGradientPlaceholder() {
+        layer.sublayers?.removeAll { layer in
+            layer.name == "placeholderGradient"
         }
     }
 }

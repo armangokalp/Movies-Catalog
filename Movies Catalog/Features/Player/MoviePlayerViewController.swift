@@ -18,6 +18,7 @@ import Combine
  * Uses MVVM architecture with MoviePlayerViewModel for business logic.
  */
 class MoviePlayerViewController: UIViewController {
+
     private let viewModel = MoviePlayerViewModel()
     private var playerLayer: AVPlayerLayer?
     private var cancellables = Set<AnyCancellable>()
@@ -119,13 +120,6 @@ class MoviePlayerViewController: UIViewController {
         super.viewDidLayoutSubviews()
         playerLayer?.frame = playerContainerView.bounds
     }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        // ViewModel handles cleanup automatically
-    }
-    
-    
     
     private func setupUI() {
         view.backgroundColor = .black
