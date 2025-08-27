@@ -10,18 +10,18 @@ import AVKit
 import AVFoundation
 import Combine
 
-/**
- * MoviePlayerViewController
- * 
- * Video player screen with custom controls for movie playback.
- * Features play/pause, seeking, progress tracking, and auto-hiding controls.
- * Uses MVVM architecture with MoviePlayerViewModel for business logic.
- */
 class MoviePlayerViewController: UIViewController {
 
-    private let viewModel = MoviePlayerViewModel()
+    private let playerViewModel = MoviePlayerViewModel()
+    private var detailViewModel: MovieDetailViewModel?
     private var playerLayer: AVPlayerLayer?
     private var cancellables = Set<AnyCancellable>()
+    private var isFullscreen = false
+    weak var parentDetailViewController: MovieDetailViewController?
+    
+    private var portraitConstraints: [NSLayoutConstraint] = []
+    private var fullscreenConstraints: [NSLayoutConstraint] = []
+    private var controlsConstraints: [NSLayoutConstraint] = []
     
     private lazy var playerContainerView: UIView = {
         let view = UIView()
@@ -99,6 +99,76 @@ class MoviePlayerViewController: UIViewController {
         return label
     }()
     
+    private lazy var fullscreenButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
+        button.tintColor = .white
+        button.addTarget(self, action: #selector(fullscreenButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var movieDetailsScrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.backgroundColor = .systemBackground
+        scrollView.showsVerticalScrollIndicator = true
+        return scrollView
+    }()
+    
+    private lazy var movieDetailsContentView: UIView = {
+        let view = UIView()
+        return view
+    }()
+    
+    private lazy var movieTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.boldSystemFont(ofSize: 24)
+        label.textColor = .label
+        label.numberOfLines = 0
+        return label
+    }()
+    
+    private lazy var movieDateLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .secondaryLabel
+        label.textAlignment = .right
+        return label
+    }()
+    
+    private lazy var movieVoteCountLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textColor = .secondaryLabel
+        return label
+    }()
+    
+    private lazy var moviePopularityLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textColor = .secondaryLabel
+        return label
+    }()
+    
+    private lazy var movieRevenueLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textColor = .secondaryLabel
+        return label
+    }()
+    
+    private lazy var movieOverviewLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .label
+        label.numberOfLines = 0
+        return label
+    }()
+    
+    
+    convenience init(viewModel: MovieDetailViewModel) {
+        self.init()
+        self.detailViewModel = viewModel
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -106,6 +176,8 @@ class MoviePlayerViewController: UIViewController {
         setupPlayerLayer()
         setupGestures()
         configureBindings()
+        setupMovieDetails()
+        updateLayoutForOrientation()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -116,17 +188,34 @@ class MoviePlayerViewController: UIViewController {
         }
     }
     
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        
+        coordinator.animate(alongsideTransition: { _ in
+            self.updateLayoutForOrientation()
+        }, completion: nil)
+    }
+    
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         playerLayer?.frame = playerContainerView.bounds
     }
     
     private func setupUI() {
-        view.backgroundColor = .black
+        view.backgroundColor = .systemBackground
         
         view.addSubview(playerContainerView)
         view.addSubview(controlsContainerView)
         view.addSubview(closeButton)
+        view.addSubview(movieDetailsScrollView)
+        
+        movieDetailsScrollView.addSubview(movieDetailsContentView)
+        movieDetailsContentView.addSubview(movieTitleLabel)
+        movieDetailsContentView.addSubview(movieDateLabel)
+        movieDetailsContentView.addSubview(movieVoteCountLabel)
+        movieDetailsContentView.addSubview(moviePopularityLabel)
+        movieDetailsContentView.addSubview(movieRevenueLabel)
+        movieDetailsContentView.addSubview(movieOverviewLabel)
         
         controlsContainerView.addSubview(playPauseButton)
         controlsContainerView.addSubview(backTrackButton)
@@ -134,74 +223,62 @@ class MoviePlayerViewController: UIViewController {
         controlsContainerView.addSubview(progressSlider)
         controlsContainerView.addSubview(currentTimeLabel)
         controlsContainerView.addSubview(durationLabel)
+        controlsContainerView.addSubview(fullscreenButton)
         
         setupConstraints()
     }
     
     private func setupConstraints() {
-        playerContainerView.translatesAutoresizingMaskIntoConstraints = false
-        controlsContainerView.translatesAutoresizingMaskIntoConstraints = false
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        playPauseButton.translatesAutoresizingMaskIntoConstraints = false
-        backTrackButton.translatesAutoresizingMaskIntoConstraints = false
-        forwardButton.translatesAutoresizingMaskIntoConstraints = false
-        progressSlider.translatesAutoresizingMaskIntoConstraints = false
-        currentTimeLabel.translatesAutoresizingMaskIntoConstraints = false
-        durationLabel.translatesAutoresizingMaskIntoConstraints = false
+        [playerContainerView, controlsContainerView, closeButton, playPauseButton, 
+         backTrackButton, forwardButton, progressSlider, currentTimeLabel, 
+         durationLabel, fullscreenButton, movieDetailsScrollView, movieDetailsContentView,
+         movieTitleLabel, movieDateLabel, movieVoteCountLabel, moviePopularityLabel, 
+         movieRevenueLabel, movieOverviewLabel].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+        }
         
+        setupMovieDetailsConstraints()
+        
+        setupLayoutConstraints()
+    }
+    
+    private func setupMovieDetailsConstraints() {
         NSLayoutConstraint.activate([
-            // Player Container
-            playerContainerView.topAnchor.constraint(equalTo: view.topAnchor),
-            playerContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            playerContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            playerContainerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            movieDetailsScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            movieDetailsScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            movieDetailsScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             
-            // Controls Container
-            controlsContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            controlsContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            controlsContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            controlsContainerView.heightAnchor.constraint(equalToConstant: 100),
+            movieDetailsContentView.topAnchor.constraint(equalTo: movieDetailsScrollView.topAnchor),
+            movieDetailsContentView.leadingAnchor.constraint(equalTo: movieDetailsScrollView.leadingAnchor),
+            movieDetailsContentView.trailingAnchor.constraint(equalTo: movieDetailsScrollView.trailingAnchor),
+            movieDetailsContentView.bottomAnchor.constraint(equalTo: movieDetailsScrollView.bottomAnchor),
+            movieDetailsContentView.widthAnchor.constraint(equalTo: movieDetailsScrollView.widthAnchor),
             
-            // Close Button
-            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
-            closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.Spacing.large),
-            closeButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
-            closeButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
+            movieTitleLabel.topAnchor.constraint(equalTo: movieDetailsContentView.topAnchor, constant: Constants.Spacing.large),
+            movieTitleLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
             
-            // Play/Pause
-            playPauseButton.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
-            playPauseButton.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor, constant: -Constants.Spacing.small),
-            playPauseButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.playButtonSize),
-            playPauseButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.playButtonSize),
+            movieDateLabel.centerYAnchor.constraint(equalTo: movieTitleLabel.centerYAnchor),
+            movieDateLabel.trailingAnchor.constraint(equalTo: movieDetailsContentView.trailingAnchor, constant: -Constants.Spacing.large),
+            movieDateLabel.leadingAnchor.constraint(greaterThanOrEqualTo: movieTitleLabel.trailingAnchor, constant: Constants.Spacing.medium),
             
-            // Backward
-            backTrackButton.trailingAnchor.constraint(equalTo: playPauseButton.leadingAnchor,
-                                                      constant: -Constants.Spacing.small),
-            backTrackButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
-
-            // Forward
-            forwardButton.leadingAnchor.constraint(equalTo: playPauseButton.trailingAnchor,
-                                                   constant: Constants.Spacing.small),
-            forwardButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
-
+            movieVoteCountLabel.topAnchor.constraint(equalTo: movieTitleLabel.bottomAnchor, constant: Constants.Spacing.medium),
+            movieVoteCountLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
             
-            // Current Time Label
-            currentTimeLabel.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: Constants.Spacing.large),
-            currentTimeLabel.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -Constants.Spacing.large),
+            moviePopularityLabel.centerYAnchor.constraint(equalTo: movieVoteCountLabel.centerYAnchor),
+            moviePopularityLabel.leadingAnchor.constraint(equalTo: movieVoteCountLabel.trailingAnchor, constant: Constants.Spacing.large),
             
-            // Duration Label
-            durationLabel.trailingAnchor.constraint(equalTo: controlsContainerView.trailingAnchor, constant: -Constants.Spacing.large),
-            durationLabel.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -Constants.Spacing.large),
+            movieRevenueLabel.topAnchor.constraint(equalTo: movieVoteCountLabel.bottomAnchor, constant: Constants.Spacing.small),
+            movieRevenueLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
             
-            // Progress Slider
-            progressSlider.leadingAnchor.constraint(equalTo: currentTimeLabel.trailingAnchor, constant: Constants.Spacing.medium),
-            progressSlider.trailingAnchor.constraint(equalTo: durationLabel.leadingAnchor, constant: -Constants.Spacing.medium),
-            progressSlider.centerYAnchor.constraint(equalTo: currentTimeLabel.centerYAnchor)
+            movieOverviewLabel.topAnchor.constraint(equalTo: movieRevenueLabel.bottomAnchor, constant: Constants.Spacing.large),
+            movieOverviewLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
+            movieOverviewLabel.trailingAnchor.constraint(equalTo: movieDetailsContentView.trailingAnchor, constant: -Constants.Spacing.large),
+            movieOverviewLabel.bottomAnchor.constraint(equalTo: movieDetailsContentView.bottomAnchor, constant: -Constants.Spacing.large)
         ])
     }
     
     private func setupPlayerLayer() {
-        guard let player = viewModel.player else { return }
+        guard let player = playerViewModel.player else { return }
         
         playerLayer = AVPlayerLayer(player: player)
         playerLayer?.videoGravity = .resizeAspect
@@ -218,31 +295,146 @@ class MoviePlayerViewController: UIViewController {
     
 
     @objc private func playPauseButtonTapped() {
-        viewModel.togglePlayPause()
+        playerViewModel.togglePlayPause()
     }
     @objc private func backwardsButtonTapped() {
-        viewModel.backward()
+        playerViewModel.backward()
     }
     @objc private func forwardsButtonTapped() {
-        viewModel.forward()
+        playerViewModel.forward()
     }
     @objc private func closeButtonTapped() {
         dismiss(animated: true)
     }
+    
+    @objc private func fullscreenButtonTapped() {
+        isFullscreen.toggle()
+        updateLayoutForOrientation()
+    }
     @objc private func playerViewTapped() {
-        viewModel.toggleControlsVisibility()
+        playerViewModel.toggleControlsVisibility()
     }
     @objc private func progressSliderChanged(_ slider: UISlider) {
-        viewModel.seek(to: slider.value)
+        playerViewModel.seek(to: slider.value)
     }
     @objc private func progressSliderTouchEnded(_ slider: UISlider) {
-        viewModel.seek(to: slider.value)
+        playerViewModel.seek(to: slider.value)
+    }
+    
+    private func setupMovieDetails() {
+        guard let viewModel = detailViewModel else { return }
+        
+        movieTitleLabel.text = viewModel.title
+        movieDateLabel.text = viewModel.date
+        movieVoteCountLabel.text = viewModel.voteCount
+        moviePopularityLabel.text = viewModel.popularity
+        movieOverviewLabel.text = viewModel.overview
+        
+        if let revenue = viewModel.revenue {
+            movieRevenueLabel.text = revenue
+            movieRevenueLabel.isHidden = false
+        } else {
+            movieRevenueLabel.isHidden = true
+        }
+    }
+    
+    private func updateLayoutForOrientation() {
+        let isLandscape = view.bounds.width > view.bounds.height
+        let shouldShowFullscreen = isFullscreen || isLandscape
+        
+        NSLayoutConstraint.deactivate(portraitConstraints + fullscreenConstraints + controlsConstraints)
+        
+        if shouldShowFullscreen {
+            NSLayoutConstraint.activate(fullscreenConstraints + controlsConstraints)
+            movieDetailsScrollView.isHidden = true
+            view.backgroundColor = .black
+            fullscreenButton.setImage(UIImage(systemName: "arrow.down.right.and.arrow.up.left"), for: .normal)
+        } else {
+            NSLayoutConstraint.activate(portraitConstraints + controlsConstraints)
+            movieDetailsScrollView.isHidden = false
+            view.backgroundColor = .systemBackground
+            fullscreenButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
+        }
+    }
+    
+    private func setupLayoutConstraints() {
+        // Portrait mode
+        portraitConstraints = [
+            playerContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            playerContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            playerContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            playerContainerView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.4),
+            
+            movieDetailsScrollView.topAnchor.constraint(equalTo: playerContainerView.bottomAnchor),
+            
+            controlsContainerView.leadingAnchor.constraint(equalTo: playerContainerView.leadingAnchor),
+            controlsContainerView.trailingAnchor.constraint(equalTo: playerContainerView.trailingAnchor),
+            controlsContainerView.bottomAnchor.constraint(equalTo: playerContainerView.bottomAnchor),
+            controlsContainerView.heightAnchor.constraint(equalToConstant: 100),
+            
+            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
+            closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.Spacing.large),
+            closeButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
+            closeButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize)
+        ]
+        
+        // Fullscreen
+        fullscreenConstraints = [
+            playerContainerView.topAnchor.constraint(equalTo: view.topAnchor),
+            playerContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            playerContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            playerContainerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            controlsContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            controlsContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            controlsContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            controlsContainerView.heightAnchor.constraint(equalToConstant: 100),
+            
+            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
+            closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.Spacing.large),
+            closeButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
+            closeButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize)
+        ]
+        
+        
+        controlsConstraints = [
+            // Play/Pause
+            playPauseButton.centerXAnchor.constraint(equalTo: controlsContainerView.centerXAnchor),
+            playPauseButton.centerYAnchor.constraint(equalTo: controlsContainerView.centerYAnchor, constant: -Constants.Spacing.small),
+            playPauseButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.playButtonSize),
+            playPauseButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.playButtonSize),
+            
+            // Backward
+            backTrackButton.trailingAnchor.constraint(equalTo: playPauseButton.leadingAnchor, constant: -Constants.Spacing.small),
+            backTrackButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
+            
+            // Forward
+            forwardButton.leadingAnchor.constraint(equalTo: playPauseButton.trailingAnchor, constant: Constants.Spacing.small),
+            forwardButton.centerYAnchor.constraint(equalTo: playPauseButton.centerYAnchor),
+            
+            // CurrentTime Label
+            currentTimeLabel.leadingAnchor.constraint(equalTo: controlsContainerView.leadingAnchor, constant: Constants.Spacing.large),
+            currentTimeLabel.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -Constants.Spacing.large),
+            
+            // Fullscreen Button
+            fullscreenButton.trailingAnchor.constraint(equalTo: controlsContainerView.trailingAnchor, constant: -Constants.Spacing.large),
+            fullscreenButton.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -Constants.Spacing.large),
+            
+            // Duration Label
+            durationLabel.trailingAnchor.constraint(equalTo: fullscreenButton.leadingAnchor, constant: -Constants.Spacing.medium),
+            durationLabel.bottomAnchor.constraint(equalTo: controlsContainerView.bottomAnchor, constant: -Constants.Spacing.large),
+            
+            // Slider
+            progressSlider.leadingAnchor.constraint(equalTo: currentTimeLabel.trailingAnchor, constant: Constants.Spacing.medium),
+            progressSlider.trailingAnchor.constraint(equalTo: durationLabel.leadingAnchor, constant: -Constants.Spacing.medium),
+            progressSlider.centerYAnchor.constraint(equalTo: currentTimeLabel.centerYAnchor)
+        ]
     }
     
     
     // data binding
     private func configureBindings() {
-        viewModel.$isPlaying
+        playerViewModel.$isPlaying
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isPlaying in
                 let imageName = isPlaying ? "pause.fill" : "play.fill"
@@ -250,36 +442,36 @@ class MoviePlayerViewController: UIViewController {
             }
             .store(in: &cancellables)
         
-        viewModel.$playbackProgress
+        playerViewModel.$playbackProgress
             .receive(on: DispatchQueue.main)
             .sink { [weak self] progress in
                 self?.progressSlider.value = progress
             }
             .store(in: &cancellables)
         
-        viewModel.$currentTimeText
+        playerViewModel.$currentTimeText
             .receive(on: DispatchQueue.main)
             .sink { [weak self] timeText in
                 self?.currentTimeLabel.text = timeText
             }
             .store(in: &cancellables)
         
-        viewModel.$durationText
+        playerViewModel.$durationText
             .receive(on: DispatchQueue.main)
             .sink { [weak self] durationText in
                 self?.durationLabel.text = durationText
             }
             .store(in: &cancellables)
         
-        viewModel.$controlsVisible
+        playerViewModel.$controlsVisible
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isVisible in
                 self?.animateControlsVisibility(isVisible: isVisible)
             }
             .store(in: &cancellables)
         
-        viewModel.onPlayerReady = { [weak self] in
-            self?.viewModel.play()
+        playerViewModel.onPlayerReady = { [weak self] in
+            self?.playerViewModel.play()
         }
     }
     
