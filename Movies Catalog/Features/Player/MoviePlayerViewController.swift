@@ -11,12 +11,10 @@ import AVFoundation
 import Combine
 
 class MoviePlayerViewController: UIViewController {
-
     private let playerViewModel = MoviePlayerViewModel()
     private var detailViewModel: MovieDetailViewModel?
     private var playerLayer: AVPlayerLayer?
     private var cancellables = Set<AnyCancellable>()
-    private var isFullscreen = false
     weak var parentDetailViewController: MovieDetailViewController?
     
     private var portraitConstraints: [NSLayoutConstraint] = []
@@ -306,10 +304,15 @@ class MoviePlayerViewController: UIViewController {
     @objc private func closeButtonTapped() {
         dismiss(animated: true)
     }
-    
     @objc private func fullscreenButtonTapped() {
-        isFullscreen.toggle()
-        updateLayoutForOrientation()
+        let isLandscape = view.bounds.width > view.bounds.height
+        if isLandscape {
+            forceOrientation(.portrait)
+            updateLayoutForOrientation()
+        } else {
+            forceOrientation(.landscapeRight)
+            updateLayoutForOrientation()
+        }
     }
     @objc private func playerViewTapped() {
         playerViewModel.toggleControlsVisibility()
@@ -340,11 +343,10 @@ class MoviePlayerViewController: UIViewController {
     
     private func updateLayoutForOrientation() {
         let isLandscape = view.bounds.width > view.bounds.height
-        let shouldShowFullscreen = isFullscreen || isLandscape
         
         NSLayoutConstraint.deactivate(portraitConstraints + fullscreenConstraints + controlsConstraints)
         
-        if shouldShowFullscreen {
+        if isLandscape {
             NSLayoutConstraint.activate(fullscreenConstraints + controlsConstraints)
             movieDetailsScrollView.isHidden = true
             view.backgroundColor = .black
@@ -355,6 +357,12 @@ class MoviePlayerViewController: UIViewController {
             view.backgroundColor = .systemBackground
             fullscreenButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
         }
+    }
+    
+    private func forceOrientation(_ orientation: UIInterfaceOrientationMask) {
+        guard let windowScene = view.window?.windowScene else { return }
+        
+        windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
     }
     
     private func setupLayoutConstraints() {

@@ -252,7 +252,7 @@ class MovieDetailViewController: UIViewController {
     
     @objc private func playButtonTapped() {
         let playerVC = viewModel.playMovie()
-        playerVC.modalPresentationStyle = .fullScreen
+        playerVC.modalPresentationStyle = .pageSheet
             
 //        forcePortrait()
         

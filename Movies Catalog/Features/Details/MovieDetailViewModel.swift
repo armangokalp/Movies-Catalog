@@ -16,6 +16,7 @@ class MovieDetailViewModel {
     init(movie: Movie) {
         self.movie = movie
     }
+
     
     var title: String           { return movie.title }
     var year: String            { return movie.formattedReleaseYear }
