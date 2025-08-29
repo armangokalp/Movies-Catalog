@@ -9,25 +9,32 @@
 import Foundation
 
 class MovieListViewModel {
-    private let apiService = APIService.shared
+    private let apiService: MovieAPIService // DI
     private(set) var moviesByCategory: [MovieCategory: [Movie]] = [:]
     
+    // ui hooks
     var onDataUpdated: (() -> Void)?
     var onError: ((String) -> Void)?
     var onLoadingStateChanged: ((Bool) -> Void)?
     
+    init(apiService: MovieAPIService) {
+        self.apiService = apiService
+    }
     
+    // MARK: - Data Loading
     func loadMovies() {
         onLoadingStateChanged?(true)
-        let group = DispatchGroup()
+        let group = DispatchGroup() // wait for all categories, then refresh UI
         
         for category in MovieCategory.allCases {
             group.enter()
-            apiService.fetchMovies(category: category) { [weak self] result in
+            // Curently always fetching page 1 (can extend for pagination later)
+            apiService.fetchMovies(category: category, page: 1) { [weak self] result in
                 defer { group.leave() }
                 
                 switch result {
                 case .success(let response):
+                    // TODO: will append when adding infinite scroll
                     self?.moviesByCategory[category] = response.results
                 case .failure(let error):
                     self?.onError?("Failed to load \(category.displayName): \(error.localizedDescription)")
@@ -41,6 +48,7 @@ class MovieListViewModel {
         }
     }
     
+    // MARK: - Data Access
     func getMovies(for category: MovieCategory) -> [Movie] {
         return moviesByCategory[category] ?? []
     }

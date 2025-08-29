@@ -5,13 +5,14 @@
 //  Created by Arman Gökalp on 25.08.2025.
 //
 
+// Basic async image loader with in-memory cache
+
 import UIKit
 
-class ImageLoader {
-    static let shared = ImageLoader()
+class ImageLoader: ImageLoadingService {
     private let cache = NSCache<NSString, UIImage>()
     
-    private init() {
+    init() {
         cache.countLimit = Constants.Cache.imageCountLimit
         cache.totalCostLimit = Constants.Cache.imageTotalCostLimit
     }
@@ -51,20 +52,21 @@ class ImageLoader {
 extension UIImageView {
     func loadImage(from urlString: String?, placeholderColors: [CGColor] = [Constants.Colors.label.cgColor, Constants.Colors.placeholder.cgColor], completion: ((UIImage?) -> Void)? = nil) {
         
-        createGradientPlaceholder(placeholderColors)
+        createGradientPlaceholder(placeholderColors) ///while loading
         
         guard let urlString = urlString else { 
             completion?(nil)
             return 
         }
         
-        ImageLoader.shared.loadImage(from: urlString) { [weak self] image in
+        let imageLoader: ImageLoadingService = AppDependencyContainer.shared.resolve(ImageLoadingService.self)
+        imageLoader.loadImage(from: urlString) { [weak self] image in
             DispatchQueue.main.async {
                 if let loadedImage = image {
                     self?.removeGradientPlaceholder()
                     self?.image = loadedImage
                 } else {
-                    self?.image = UIImage(named: "")
+                    //self?.image = UIImage(named: "fallback")
                 }
                 completion?(image)
             }
@@ -72,7 +74,7 @@ extension UIImageView {
     }
     
     private func createGradientPlaceholder(_ gradientColors: [CGColor]) {
-        //removeGradientPlaceholder()
+        removeGradientPlaceholder() ///avoid stacking
         
         let gradientLayer = CAGradientLayer()
         gradientLayer.colors = gradientColors
@@ -82,15 +84,11 @@ extension UIImageView {
         gradientLayer.cornerRadius = layer.cornerRadius
         gradientLayer.name = "placeholderGradient"
         
-        let icon = UIImageView(image: UIImage(systemName: "film.fill"))
-        icon.tintColor = Constants.Colors.primary
-        
-        // Set frame in layoutSubviews to ensure proper sizing
+        // init size before gradient
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             gradientLayer.frame = self.bounds
             self.layer.insertSublayer(gradientLayer, at: 0)
-            //gradientLayer.insertSublayer(icon, at: 0)
         }
     }
     

@@ -20,12 +20,13 @@ class MovieDetailViewModel {
     
     var title: String           { return movie.title }
     var year: String            { return movie.formattedReleaseYear }
-    var date: String            { return "\(movie.releaseDate) 📅" }
     var rating: String          { return "⭐ \(movie.formattedRating)" }
     var overview: String        { return movie.overview }
     var posterURL: String?      { return movie.fullPosterURL }
     var backdropURL: String?    { return movie.fullBackdropURL }
     
+    // for MoviePlayer info section
+    var date: String            { return "\(movie.releaseDate) 📅" }
     var voteCount: String       { return "\(movie.voteCount) votes" }
     var popularity: String      { return String(format: "%.1f popularity", movie.popularity) }
     var revenue: String?        { 
@@ -37,7 +38,4 @@ class MovieDetailViewModel {
         return formatter.string(from: NSNumber(value: revenue))
     }
     
-    func playMovie() -> MoviePlayerViewController {
-        return MoviePlayerViewController(viewModel: self)
-    }
 }

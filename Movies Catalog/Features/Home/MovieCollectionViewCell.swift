@@ -5,15 +5,15 @@
 //  Created by Arman Gökalp on 25.08.2025.
 //
 
+// Screen: movie card item
+
 import UIKit
 
-// Configurable Protocol for Reusability
 protocol Configurable {
     associatedtype Model
     func configure(with model: Model)
 }
 
-// Identifier
 protocol Reusable {
     static var identifier: String { get }
 }
@@ -27,15 +27,17 @@ extension Reusable {
 class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
     typealias Model = Movie
     
+    // image
     private let posterImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.backgroundColor = Constants.Colors.placeholder
+        //imageView.backgroundColor = Constants.Colors.placeholder
         imageView.layer.cornerRadius = Constants.CornerRadius.small
         return imageView
     }()
     
+    // ProgressView
     private let loadingIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .medium)
         indicator.hidesWhenStopped = true
@@ -78,7 +80,7 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
     
 
     func configure(with movie: Movie) {
-      //  accessibilityLabel = "Movie: \(movie.title)"
+      //  accessibilityLabel = "Movie: \(movie.title)" ///would not hurt to add
       //  accessibilityHint = "Double tap to view movie details"
         
         loadingIndicator.startAnimating()
@@ -90,6 +92,8 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
                 self?.loadingIndicator.stopAnimating()
             }
         }
+        
+        // TODO: could add movie title on top of poster if fallback image
 
     }
     
@@ -102,12 +106,12 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
         accessibilityHint = nil
     }
     
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+   /* override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             posterImageView.backgroundColor = Constants.Colors.placeholder
             loadingIndicator.color = Constants.Colors.secondaryLabel
         }
-    }
+    }*/ /// Could be useful if we want light/dark mode switch
 }

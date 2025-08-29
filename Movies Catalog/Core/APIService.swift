@@ -7,14 +7,11 @@
 
 import Foundation
 
-class APIService {
-    static let shared = APIService()
-    
+class APIService: MovieAPIService {
     private let baseURL = "https://api.themoviedb.org/3"
-    private let apiKey = "8537cf09d8c5dd833338467f049a0aa7"
+    private let apiKey = "8537cf09d8c5dd833338467f049a0aa7" // normally this should come from environment variables or secure storage
     
-    private init() {    }
-    
+    init() {    }
     
     func fetchMovies(category: MovieCategory, page: Int = 1, completion: @escaping (Result<MoviesResponse, Error>) -> Void) {
         guard let url = buildURL(for: category, page: page) else {
@@ -24,10 +21,17 @@ class APIService {
         
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
+                /// Always callback on main thread for UI consistency
                 DispatchQueue.main.async {
                     completion(.failure(error))
                 }
                 return
+            }
+            
+            // Non-2xx → fail early (don’t attempt decode)
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                DispatchQueue.main.async { completion(.failure(APIError.noData)) }
+                    return
             }
             
             guard let data = data else {
@@ -52,8 +56,7 @@ class APIService {
         task.resume()
     }
     
-
-    private func buildURL(for category: MovieCategory, page: Int) -> URL? {
+    private func buildURL(for category: MovieCategory, page: Int) -> URL? { ///Helper
         var components = URLComponents(string: "\(baseURL)/discover/movie")
         components?.queryItems = [
             URLQueryItem(name: "api_key", value: apiKey),
@@ -64,7 +67,6 @@ class APIService {
             URLQueryItem(name: "language", value: "en-US")
         ]
         
-        // Add additional filters for revenue category
         if category == .revenue {
             components?.queryItems?.append(URLQueryItem(name: "revenue.gte", value: "1000000"))
         }

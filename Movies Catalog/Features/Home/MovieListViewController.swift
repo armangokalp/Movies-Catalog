@@ -5,11 +5,17 @@
 //  Created by Arman Gökalp on 25.08.2025.
 //
 
+// Screen: home with movie carousels
+
+
 import UIKit
 
 class MovieListViewController: UIViewController {
+    // DI
+    private let viewModel: MovieListViewModel
+    private let factory: ViewControllerFactory
     
-    private let viewModel = MovieListViewModel()
+    // MARK: UI components
     
     private lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -71,7 +77,15 @@ class MovieListViewController: UIViewController {
         return view
     }()
     
+    init(viewModel: MovieListViewModel, factory: ViewControllerFactory) {
+        self.viewModel = viewModel
+        self.factory = factory
+        super.init(nibName: nil, bundle: nil)
+    }
     
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -83,6 +97,7 @@ class MovieListViewController: UIViewController {
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        //Resized gradient layer to always fill divider view
         navBarGradientDivider.layer.sublayers?.first?.frame = navBarGradientDivider.bounds
     }
     
@@ -105,27 +120,32 @@ class MovieListViewController: UIViewController {
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
+            //Divider on top
             navBarGradientDivider.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             navBarGradientDivider.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             navBarGradientDivider.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             navBarGradientDivider.heightAnchor.constraint(equalToConstant: 2),
             
+            //Scroll container
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
+            // Content width = scroll, height = stack
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: Constants.Spacing.large),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             
+            //Stack fills content
             stackView.topAnchor.constraint(equalTo: contentView.topAnchor),
             stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             
+            // Center overlay
             loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
@@ -139,7 +159,7 @@ class MovieListViewController: UIViewController {
         }
         
         viewModel.onError = { errorMessage in
-            print(errorMessage)
+            print(errorMessage) // TODO: Could give in-app feedback
         }
         
         viewModel.onLoadingStateChanged = { [weak self] isLoading in
@@ -186,7 +206,7 @@ class MovieListViewController: UIViewController {
         collectionView.register(MovieCollectionViewCell.self, forCellWithReuseIdentifier: MovieCollectionViewCell.identifier)
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.tag = category.hashValue
+        collectionView.tag = category.hashValue //rawValue could be used for stability
         
         containerView.addSubview(titleLabel)
         containerView.addSubview(collectionView)
@@ -210,7 +230,7 @@ class MovieListViewController: UIViewController {
     }
     
     private func getCategoryFromTag(_ tag: Int) -> MovieCategory? {
-        return MovieCategory.allCases.first { $0.hashValue == tag }
+        return MovieCategory.allCases.first { $0.hashValue == tag } // Should be changed if switched to rawValue tags
     }
 }
 
@@ -240,7 +260,7 @@ extension MovieListViewController: UICollectionViewDelegate {
         guard let category = getCategoryFromTag(collectionView.tag),
               let movie = viewModel.getMovie(for: category, at: indexPath.item) else { return }
         
-        let detailVC = MovieDetailViewController(movie: movie)
+        let detailVC = factory.makeMovieDetailViewController(movie: movie)
         navigationController?.pushViewController(detailVC, animated: true)
     }
 }

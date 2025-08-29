@@ -5,12 +5,17 @@
 //  Created by Arman Gökalp on 25.08.2025.
 //
 
+// Screen: movie detail info + play
+
+
 import UIKit
 
 class MovieDetailViewController: UIViewController {
     
     private let viewModel: MovieDetailViewModel
+    private let factory: ViewControllerFactory
     
+    // MARK: UI Components
     private lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
@@ -32,10 +37,7 @@ class MovieDetailViewController: UIViewController {
     
     private lazy var gradientView: UIView = {
         let view = UIView()
-        let gradientLayer = CAGradientLayer()
-        gradientLayer.colors = [UIColor.clear.cgColor, Constants.Colors.background.cgColor]
-        gradientLayer.locations = [0.0, 1.0]
-        view.layer.addSublayer(gradientLayer)
+        view.setGradientBackground([UIColor.clear, Constants.Colors.background])
         return view
     }()
     
@@ -106,8 +108,9 @@ class MovieDetailViewController: UIViewController {
         return label
     }()
     
-    init(movie: Movie) {
-        self.viewModel = MovieDetailViewModel(movie: movie)
+    init(viewModel: MovieDetailViewModel, factory: ViewControllerFactory) {
+        self.viewModel = viewModel
+        self.factory = factory
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -251,22 +254,11 @@ class MovieDetailViewController: UIViewController {
     }
     
     @objc private func playButtonTapped() {
-        let playerVC = viewModel.playMovie()
+        let playerVC = factory.makeMoviePlayerViewController(viewModel: viewModel)
         playerVC.modalPresentationStyle = .pageSheet
             
-//        forcePortrait()
         
         present(playerVC, animated: true)
     }
-    
-    /*private func forcePortrait() {
-        // MovieDetailVC stays portrait after dismissing MoviePlayerVC
-        CATransaction.begin()
-        CATransaction.setDisableActions(true) // disable animation
-        if let windowScene = view.window?.windowScene {
-            windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
-        }
-        CATransaction.commit()
-    }*/
 
 }

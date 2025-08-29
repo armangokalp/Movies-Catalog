@@ -5,6 +5,8 @@
 //  Created by Arman Gökalp on 25.08.2025.
 //
 
+// Screen: in-app movie player (custom AVPlayer + orientation-based layout)
+
 import UIKit
 import AVKit
 import AVFoundation
@@ -20,6 +22,8 @@ class MoviePlayerViewController: UIViewController {
     private var portraitConstraints: [NSLayoutConstraint] = []
     private var fullscreenConstraints: [NSLayoutConstraint] = []
     private var controlsConstraints: [NSLayoutConstraint] = []
+    
+    // MARK: UI Components
     
     private lazy var playerContainerView: UIView = {
         let view = UIView()
@@ -181,7 +185,7 @@ class MoviePlayerViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        if let windowScene = view.window?.windowScene {
+        if let windowScene = view.window?.windowScene { /// Enable all orientation just for this view
             windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .allButUpsideDown))
         }
     }
@@ -291,7 +295,7 @@ class MoviePlayerViewController: UIViewController {
         playerContainerView.addGestureRecognizer(tapGesture)
     }
     
-
+    //MARK: Action
     @objc private func playPauseButtonTapped() {
         playerViewModel.togglePlayPause()
     }
@@ -308,10 +312,8 @@ class MoviePlayerViewController: UIViewController {
         let isLandscape = view.bounds.width > view.bounds.height
         if isLandscape {
             forceOrientation(.portrait)
-            updateLayoutForOrientation()
         } else {
             forceOrientation(.landscapeRight)
-            updateLayoutForOrientation()
         }
     }
     @objc private func playerViewTapped() {
@@ -341,7 +343,7 @@ class MoviePlayerViewController: UIViewController {
         }
     }
     
-    private func updateLayoutForOrientation() {
+    private func updateLayoutForOrientation() { /// for device orientation
         let isLandscape = view.bounds.width > view.bounds.height
         
         NSLayoutConstraint.deactivate(portraitConstraints + fullscreenConstraints + controlsConstraints)
@@ -359,7 +361,7 @@ class MoviePlayerViewController: UIViewController {
         }
     }
     
-    private func forceOrientation(_ orientation: UIInterfaceOrientationMask) {
+    private func forceOrientation(_ orientation: UIInterfaceOrientationMask) { /// for fullscreen button
         guard let windowScene = view.window?.windowScene else { return }
         
         windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
@@ -440,8 +442,7 @@ class MoviePlayerViewController: UIViewController {
     }
     
     
-    // data binding
-    private func configureBindings() {
+    private func configureBindings() { /// Data Binding
         playerViewModel.$isPlaying
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isPlaying in

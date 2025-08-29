@@ -5,6 +5,8 @@
 //  Created by Arman Gökalp on 25.08.2025.
 //
 
+//  App bootstrap and dependency injection setup
+
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
@@ -12,18 +14,43 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let windowScene = (scene as? UIWindowScene) else { return }
+        
+        // Configure all services before creating any view controllers
+        setupDependencyInjection()
         
         window = UIWindow(windowScene: windowScene)
         window?.overrideUserInterfaceStyle = .dark
         
-        let movieListVC = MovieListViewController()
+        // Use factory pattern to ensure proper dependency injection throughout the app
+        let factory = AppViewControllerFactory()
+        let movieListVC = factory.makeMovieListViewController()
         let navigationController = UINavigationController(rootViewController: movieListVC)
+        
         window?.rootViewController = navigationController
         window?.makeKeyAndVisible()
+    }
+    
+    private func setupDependencyInjection() {
+        let container = AppDependencyContainer.shared
+        
+        // Register concrete implementations for protocol-based services
+        // This approach allows easy testing with mock services
+        container.register(MovieAPIService.self) {
+            APIService()
+        }
+        
+        container.register(ImageLoadingService.self) {
+            ImageLoader()
+        }
+        
+        container.register(ViewControllerFactory.self) {
+            AppViewControllerFactory()
+        }
+
+        container.register(MoviePlayerViewModel.self) {
+            MoviePlayerViewModel()
+        }
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {

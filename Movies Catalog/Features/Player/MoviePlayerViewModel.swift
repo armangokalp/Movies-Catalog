@@ -9,7 +9,7 @@ import Foundation
 import AVFoundation
 import Combine
 
-// Handle AVPlayer logic and state management
+// Handles AVPlayer logic and state management
 class MoviePlayerViewModel: NSObject, ObservableObject {
     private(set) var player: AVPlayer?
     private let videoURL = URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8")!
