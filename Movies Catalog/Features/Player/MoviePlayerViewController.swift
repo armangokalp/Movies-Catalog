@@ -13,7 +13,7 @@ import AVFoundation
 import Combine
 
 class MoviePlayerViewController: UIViewController {
-    private let playerViewModel = MoviePlayerViewModel()
+    private let playerViewModel: MoviePlayerViewModel
     private var detailViewModel: MovieDetailViewModel?
     private var playerLayer: AVPlayerLayer?
     private var cancellables = Set<AnyCancellable>()
@@ -167,9 +167,15 @@ class MoviePlayerViewController: UIViewController {
     }()
     
     
-    convenience init(viewModel: MovieDetailViewModel) {
-        self.init()
-        self.detailViewModel = viewModel
+    init(detailViewModel: MovieDetailViewModel,
+         playerViewModel: MoviePlayerViewModel = MoviePlayerViewModel()) {
+        self.detailViewModel = detailViewModel
+        self.playerViewModel = playerViewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
     override func viewDidLoad() {

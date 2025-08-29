@@ -26,7 +26,7 @@ final class AppViewControllerFactory: ViewControllerFactory {
     }
     
     func makeMoviePlayerViewController(viewModel: MovieDetailViewModel) -> MoviePlayerViewController {
-        return MoviePlayerViewController(viewModel: viewModel)
+        return MoviePlayerViewController(detailViewModel: viewModel)
     }
 }
 
