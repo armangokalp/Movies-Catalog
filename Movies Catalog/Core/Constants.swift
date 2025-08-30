@@ -115,6 +115,7 @@ extension Constants {
         static let secondaryLabel = UIColor.secondaryLabel
         static let placeholder = UIColor(red: 0.07, green: 0.05, blue: 0.06, alpha: 1)
         static let overlay = UIColor.black.withAlphaComponent(0.5)
+        static let overlayFont = UIColor.black
         static let controlsBackground = UIColor.black.withAlphaComponent(0.6)
     }
 }

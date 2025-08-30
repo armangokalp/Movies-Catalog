@@ -26,7 +26,7 @@ extension Reusable {
 
 class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
     typealias Model = Movie
-    
+        
     // image
     private let posterImageView: UIImageView = {
         let imageView = UIImageView()
@@ -45,10 +45,29 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
         return indicator
     }()
     
+    
+    private let titleOverlayView: UIView = {
+        let v = UIView()
+        v.isHidden = true
+        v.clipsToBounds = true
+        return v
+    }()
+    
+    private let titleLabel: UILabel = {
+        let l = UILabel()
+        l.numberOfLines = 0
+        l.textAlignment = .center
+        l.font = Constants.Typography.semiboldHeadline()
+        l.textColor = Constants.Colors.overlayFont
+        l.setContentCompressionResistancePriority(.required, for: .vertical)
+        l.setContentHuggingPriority(.required, for: .vertical)
+        return l
+    }()
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
-        setupAccessibility()
+       // setupAccessibility()
     }
     
     required init?(coder: NSCoder) {
@@ -58,25 +77,41 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
     private func setupUI() {
         contentView.addSubview(posterImageView)
         contentView.addSubview(loadingIndicator)
+        posterImageView.addSubview(titleOverlayView)
+        titleOverlayView.addSubview(titleLabel)
         
         posterImageView.translatesAutoresizingMaskIntoConstraints = false
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+        titleOverlayView.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
+            // image
             posterImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
             posterImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             posterImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             posterImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             
+            // ProgressView centers image
             loadingIndicator.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            loadingIndicator.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+            loadingIndicator.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            
+            // Title for placeholder
+            titleOverlayView.leadingAnchor.constraint(equalTo: posterImageView.leadingAnchor),
+            titleOverlayView.trailingAnchor.constraint(equalTo: posterImageView.trailingAnchor),
+            titleOverlayView.centerYAnchor.constraint(equalTo: posterImageView.centerYAnchor),
+           
+            titleLabel.leadingAnchor.constraint(equalTo: titleOverlayView.leadingAnchor, constant: Constants.Spacing.small),
+            titleLabel.trailingAnchor.constraint(equalTo: titleOverlayView.trailingAnchor, constant: -Constants.Spacing.small),
+            titleLabel.bottomAnchor.constraint(equalTo: titleOverlayView.bottomAnchor, constant: -Constants.Spacing.xxLarge),
+            titleLabel.topAnchor.constraint(equalTo: titleOverlayView.topAnchor, constant: Constants.Spacing.small)
         ])
     }
     
-    private func setupAccessibility() {
+  /*  private func setupAccessibility() {
         isAccessibilityElement = true
         accessibilityTraits = .button
-    }
+    }*/
     
 
     func configure(with movie: Movie) {
@@ -85,18 +120,28 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
         
         loadingIndicator.startAnimating()
         
+        titleLabel.text = movie.title
+        hideTitleOverlay()
+        
         posterImageView.loadImage(
             from: movie.fullPosterURL
-        ) { [weak self] _ in
+        ) { [weak self] loaded in
             DispatchQueue.main.async {
                 self?.loadingIndicator.stopAnimating()
+                // Overlay if not loaded
+                let hasImage = (loaded != nil) || (self?.posterImageView.image != nil)
+                hasImage ? self?.hideTitleOverlay() : self?.showTitleOverlay()
             }
         }
-        
-        // TODO: could add movie title on top of poster if fallback image
 
     }
     
+    private func showTitleOverlay() {
+        titleOverlayView.isHidden = false
+    }
+    private func hideTitleOverlay() {
+        titleOverlayView.isHidden = true
+    }
 
     override func prepareForReuse() {
         super.prepareForReuse()
