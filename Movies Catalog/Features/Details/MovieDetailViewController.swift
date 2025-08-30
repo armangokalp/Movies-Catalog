@@ -132,6 +132,8 @@ class MovieDetailViewController: UIViewController {
         
         bgGradientLayer = view.setGradientBackground([Constants.Colors.background,Constants.Colors.background, Constants.Colors.secondaryBackground])
         backdropGradientLayer = gradientView.setGradientBackground([UIColor.clear, Constants.Colors.background])
+        backdropGradientLayer?.needsDisplayOnBoundsChange = true
+        backdropGradientLayer?.contentsScale = UIScreen.main.scale
     }
     
     override func viewDidLayoutSubviews() {
@@ -139,6 +141,27 @@ class MovieDetailViewController: UIViewController {
         updateGradientFrame()
     }
     
+    override func viewWillTransition(to size: CGSize,
+                                     with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+
+        coordinator.animate(alongsideTransition: { _ in
+            self.view.setNeedsLayout()
+            self.view.layoutIfNeeded()
+
+            self.updateGradientFrame()
+        })
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+
+        self.updateGradientFrame()
+    }
+
     
     //MARK: Setup
     
@@ -259,8 +282,8 @@ class MovieDetailViewController: UIViewController {
     private func updateGradientFrame() {
         CATransaction.begin()
         CATransaction.setDisableActions(true) // disable animation
-        bgGradientLayer?.frame = view.bounds
-        backdropGradientLayer?.frame = gradientView.bounds
+        self.bgGradientLayer?.frame = self.view.bounds
+        self.backdropGradientLayer?.frame = self.gradientView.bounds
         CATransaction.commit()
     }
     

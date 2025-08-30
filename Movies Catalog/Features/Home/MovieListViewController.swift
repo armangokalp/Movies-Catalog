@@ -15,6 +15,7 @@ class MovieListViewController: UIViewController {
     private let viewModel: MovieListViewModel
     private let factory: ViewControllerFactory
     
+    private var bgGradientLayer: CAGradientLayer?
     private var dataSource: [MovieCategory] = []
 
     
@@ -155,13 +156,15 @@ class MovieListViewController: UIViewController {
         setupUI()
         setupBindings()
         viewModel.loadMovies()
-        view.setGradientBackground([Constants.Colors.background, Constants.Colors.secondaryBackground])
+        bgGradientLayer = view.setGradientBackground([Constants.Colors.background, Constants.Colors.secondaryBackground])
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         //Resized gradient layer to always fill divider view
         navBarGradientDivider.layer.sublayers?.first?.frame = navBarGradientDivider.bounds
+        
+        bgGradientLayer?.frame = view.bounds
     }
     
     
