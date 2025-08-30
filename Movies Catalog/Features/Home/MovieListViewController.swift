@@ -15,6 +15,7 @@ class MovieListViewController: UIViewController {
     private let viewModel: MovieListViewModel
     private let factory: ViewControllerFactory
     
+    
     // MARK: UI components
     
     private lazy var scrollView: UIScrollView = {
@@ -35,6 +36,7 @@ class MovieListViewController: UIViewController {
         stackView.alignment = .fill
         return stackView
     }()
+    
     
     private lazy var loadingIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .large)
@@ -77,6 +79,52 @@ class MovieListViewController: UIViewController {
         return view
     }()
     
+    private func createCategorySection(for category: MovieCategory, movies: [Movie]) -> UIView {
+        let containerView = UIView()
+        
+        // Category title
+        let titleLabel = UILabel()
+        titleLabel.text = category.displayName
+        titleLabel.font = Constants.Typography.boldTitle3()
+        titleLabel.textColor = Constants.Colors.label
+        titleLabel.adjustsFontForContentSizeCategory = true
+        
+        // Collection view
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.itemSize = CGSize(width: Constants.Dimensions.posterWidth, height: Constants.Dimensions.posterHeight)
+        layout.minimumLineSpacing = Constants.Spacing.tiny
+        layout.sectionInset = UIEdgeInsets(top: 0, left: Constants.Spacing.tiny, bottom: 0, right: Constants.Spacing.tiny)
+        
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.backgroundColor = .clear
+        collectionView.showsHorizontalScrollIndicator = false
+        collectionView.register(MovieCollectionViewCell.self, forCellWithReuseIdentifier: MovieCollectionViewCell.identifier)
+        collectionView.dataSource = self
+        collectionView.delegate = self
+        collectionView.tag = category.hashValue //rawValue could be used for stability
+        
+        containerView.addSubview(titleLabel)
+        containerView.addSubview(collectionView)
+        
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.Spacing.tiny),
+            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -Constants.Spacing.tiny),
+            
+            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: Constants.Spacing.small),
+            collectionView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            collectionView.heightAnchor.constraint(equalToConstant: Constants.Dimensions.posterHeight),
+            collectionView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -Constants.Spacing.large)
+        ])
+        
+        return containerView
+    }
+    
     init(viewModel: MovieListViewModel, factory: ViewControllerFactory) {
         self.viewModel = viewModel
         self.factory = factory
@@ -86,6 +134,9 @@ class MovieListViewController: UIViewController {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    
+    // MARK: Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -100,6 +151,9 @@ class MovieListViewController: UIViewController {
         //Resized gradient layer to always fill divider view
         navBarGradientDivider.layer.sublayers?.first?.frame = navBarGradientDivider.bounds
     }
+    
+    
+    //MARK: Setup
     
     private func setupUI() {
         //view.backgroundColor = Constants.Colors.background
@@ -150,8 +204,7 @@ class MovieListViewController: UIViewController {
             loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
-    
-    
+
     
     private func setupBindings() {
         viewModel.onDataUpdated = { [weak self] in
@@ -181,52 +234,6 @@ class MovieListViewController: UIViewController {
             let sectionView = createCategorySection(for: category, movies: movies)
             stackView.addArrangedSubview(sectionView)
         }
-    }
-    
-    private func createCategorySection(for category: MovieCategory, movies: [Movie]) -> UIView {
-        let containerView = UIView()
-        
-        // Category title
-        let titleLabel = UILabel()
-        titleLabel.text = category.displayName
-        titleLabel.font = Constants.Typography.boldTitle3()
-        titleLabel.textColor = Constants.Colors.label
-        titleLabel.adjustsFontForContentSizeCategory = true
-        
-        // Collection view
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .horizontal
-        layout.itemSize = CGSize(width: Constants.Dimensions.posterWidth, height: Constants.Dimensions.posterHeight)
-        layout.minimumLineSpacing = Constants.Spacing.tiny
-        layout.sectionInset = UIEdgeInsets(top: 0, left: Constants.Spacing.tiny, bottom: 0, right: Constants.Spacing.tiny)
-        
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .clear
-        collectionView.showsHorizontalScrollIndicator = false
-        collectionView.register(MovieCollectionViewCell.self, forCellWithReuseIdentifier: MovieCollectionViewCell.identifier)
-        collectionView.dataSource = self
-        collectionView.delegate = self
-        collectionView.tag = category.hashValue //rawValue could be used for stability
-        
-        containerView.addSubview(titleLabel)
-        containerView.addSubview(collectionView)
-        
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: Constants.Spacing.tiny),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -Constants.Spacing.tiny),
-            
-            collectionView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: Constants.Spacing.small),
-            collectionView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            collectionView.heightAnchor.constraint(equalToConstant: Constants.Dimensions.posterHeight),
-            collectionView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -Constants.Spacing.large)
-        ])
-        
-        return containerView
     }
     
     private func getCategoryFromTag(_ tag: Int) -> MovieCategory? {

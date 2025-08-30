@@ -118,6 +118,9 @@ class MovieDetailViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
     
+    
+    //MARK: Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -129,6 +132,9 @@ class MovieDetailViewController: UIViewController {
         super.viewDidLayoutSubviews()
         updateGradientFrame()
     }
+    
+    
+    //MARK: Setup
     
     private func setupUI() {
         view.backgroundColor = Constants.Colors.background
@@ -253,6 +259,8 @@ class MovieDetailViewController: UIViewController {
         CATransaction.commit()
     }
     
+    
+    // MARK: Action
     @objc private func playButtonTapped() {
         let playerVC = factory.makeMoviePlayerViewController(viewModel: viewModel)
         playerVC.modalPresentationStyle = .pageSheet

@@ -178,6 +178,8 @@ class MoviePlayerViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
     
+    //MARK: Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -208,6 +210,9 @@ class MoviePlayerViewController: UIViewController {
         super.viewDidLayoutSubviews()
         playerLayer?.frame = playerContainerView.bounds
     }
+    
+    
+    //MARK: Setup
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
@@ -248,129 +253,6 @@ class MoviePlayerViewController: UIViewController {
         setupMovieDetailsConstraints()
         
         setupLayoutConstraints()
-    }
-    
-    private func setupMovieDetailsConstraints() {
-        NSLayoutConstraint.activate([
-            movieDetailsScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            movieDetailsScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            movieDetailsScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            
-            movieDetailsContentView.topAnchor.constraint(equalTo: movieDetailsScrollView.topAnchor),
-            movieDetailsContentView.leadingAnchor.constraint(equalTo: movieDetailsScrollView.leadingAnchor),
-            movieDetailsContentView.trailingAnchor.constraint(equalTo: movieDetailsScrollView.trailingAnchor),
-            movieDetailsContentView.bottomAnchor.constraint(equalTo: movieDetailsScrollView.bottomAnchor),
-            movieDetailsContentView.widthAnchor.constraint(equalTo: movieDetailsScrollView.widthAnchor),
-            
-            movieTitleLabel.topAnchor.constraint(equalTo: movieDetailsContentView.topAnchor, constant: Constants.Spacing.large),
-            movieTitleLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
-            
-            movieDateLabel.centerYAnchor.constraint(equalTo: movieTitleLabel.centerYAnchor),
-            movieDateLabel.trailingAnchor.constraint(equalTo: movieDetailsContentView.trailingAnchor, constant: -Constants.Spacing.large),
-            movieDateLabel.leadingAnchor.constraint(greaterThanOrEqualTo: movieTitleLabel.trailingAnchor, constant: Constants.Spacing.medium),
-            
-            movieVoteCountLabel.topAnchor.constraint(equalTo: movieTitleLabel.bottomAnchor, constant: Constants.Spacing.medium),
-            movieVoteCountLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
-            
-            moviePopularityLabel.centerYAnchor.constraint(equalTo: movieVoteCountLabel.centerYAnchor),
-            moviePopularityLabel.leadingAnchor.constraint(equalTo: movieVoteCountLabel.trailingAnchor, constant: Constants.Spacing.large),
-            
-            movieRevenueLabel.topAnchor.constraint(equalTo: movieVoteCountLabel.bottomAnchor, constant: Constants.Spacing.small),
-            movieRevenueLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
-            
-            movieOverviewLabel.topAnchor.constraint(equalTo: movieRevenueLabel.bottomAnchor, constant: Constants.Spacing.large),
-            movieOverviewLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
-            movieOverviewLabel.trailingAnchor.constraint(equalTo: movieDetailsContentView.trailingAnchor, constant: -Constants.Spacing.large),
-            movieOverviewLabel.bottomAnchor.constraint(equalTo: movieDetailsContentView.bottomAnchor, constant: -Constants.Spacing.large)
-        ])
-    }
-    
-    private func setupPlayerLayer() {
-        guard let player = playerViewModel.player else { return }
-        
-        playerLayer = AVPlayerLayer(player: player)
-        playerLayer?.videoGravity = .resizeAspect
-        
-        if let playerLayer = playerLayer {
-            playerContainerView.layer.addSublayer(playerLayer)
-        }
-    }
-    
-    private func setupGestures() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(playerViewTapped))
-        playerContainerView.addGestureRecognizer(tapGesture)
-    }
-    
-    //MARK: Action
-    @objc private func playPauseButtonTapped() {
-        playerViewModel.togglePlayPause()
-    }
-    @objc private func backwardsButtonTapped() {
-        playerViewModel.backward()
-    }
-    @objc private func forwardsButtonTapped() {
-        playerViewModel.forward()
-    }
-    @objc private func closeButtonTapped() {
-        dismiss(animated: true)
-    }
-    @objc private func fullscreenButtonTapped() {
-        let isLandscape = view.bounds.width > view.bounds.height
-        if isLandscape {
-            forceOrientation(.portrait)
-        } else {
-            forceOrientation(.landscapeRight)
-        }
-    }
-    @objc private func playerViewTapped() {
-        playerViewModel.toggleControlsVisibility()
-    }
-    @objc private func progressSliderChanged(_ slider: UISlider) {
-        playerViewModel.seek(to: slider.value)
-    }
-    @objc private func progressSliderTouchEnded(_ slider: UISlider) {
-        playerViewModel.seek(to: slider.value)
-    }
-    
-    private func setupMovieDetails() {
-        guard let viewModel = detailViewModel else { return }
-        
-        movieTitleLabel.text = viewModel.title
-        movieDateLabel.text = viewModel.date
-        movieVoteCountLabel.text = viewModel.voteCount
-        moviePopularityLabel.text = viewModel.popularity
-        movieOverviewLabel.text = viewModel.overview
-        
-        if let revenue = viewModel.revenue {
-            movieRevenueLabel.text = revenue
-            movieRevenueLabel.isHidden = false
-        } else {
-            movieRevenueLabel.isHidden = true
-        }
-    }
-    
-    private func updateLayoutForOrientation() { /// for device orientation
-        let isLandscape = view.bounds.width > view.bounds.height
-        
-        NSLayoutConstraint.deactivate(portraitConstraints + fullscreenConstraints + controlsConstraints)
-        
-        if isLandscape {
-            NSLayoutConstraint.activate(fullscreenConstraints + controlsConstraints)
-            movieDetailsScrollView.isHidden = true
-            view.backgroundColor = .black
-            fullscreenButton.setImage(UIImage(systemName: "arrow.down.right.and.arrow.up.left"), for: .normal)
-        } else {
-            NSLayoutConstraint.activate(portraitConstraints + controlsConstraints)
-            movieDetailsScrollView.isHidden = false
-            view.backgroundColor = .systemBackground
-            fullscreenButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
-        }
-    }
-    
-    private func forceOrientation(_ orientation: UIInterfaceOrientationMask) { /// for fullscreen button
-        guard let windowScene = view.window?.windowScene else { return }
-        
-        windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
     }
     
     private func setupLayoutConstraints() {
@@ -445,6 +327,135 @@ class MoviePlayerViewController: UIViewController {
             progressSlider.trailingAnchor.constraint(equalTo: durationLabel.leadingAnchor, constant: -Constants.Spacing.medium),
             progressSlider.centerYAnchor.constraint(equalTo: currentTimeLabel.centerYAnchor)
         ]
+    }
+    
+    private func setupMovieDetailsConstraints() {
+        NSLayoutConstraint.activate([
+            movieDetailsScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            movieDetailsScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            movieDetailsScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            
+            movieDetailsContentView.topAnchor.constraint(equalTo: movieDetailsScrollView.topAnchor),
+            movieDetailsContentView.leadingAnchor.constraint(equalTo: movieDetailsScrollView.leadingAnchor),
+            movieDetailsContentView.trailingAnchor.constraint(equalTo: movieDetailsScrollView.trailingAnchor),
+            movieDetailsContentView.bottomAnchor.constraint(equalTo: movieDetailsScrollView.bottomAnchor),
+            movieDetailsContentView.widthAnchor.constraint(equalTo: movieDetailsScrollView.widthAnchor),
+            
+            movieTitleLabel.topAnchor.constraint(equalTo: movieDetailsContentView.topAnchor, constant: Constants.Spacing.large),
+            movieTitleLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
+            
+            movieDateLabel.centerYAnchor.constraint(equalTo: movieTitleLabel.centerYAnchor),
+            movieDateLabel.trailingAnchor.constraint(equalTo: movieDetailsContentView.trailingAnchor, constant: -Constants.Spacing.large),
+            movieDateLabel.leadingAnchor.constraint(greaterThanOrEqualTo: movieTitleLabel.trailingAnchor, constant: Constants.Spacing.medium),
+            
+            movieVoteCountLabel.topAnchor.constraint(equalTo: movieTitleLabel.bottomAnchor, constant: Constants.Spacing.medium),
+            movieVoteCountLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
+            
+            moviePopularityLabel.centerYAnchor.constraint(equalTo: movieVoteCountLabel.centerYAnchor),
+            moviePopularityLabel.leadingAnchor.constraint(equalTo: movieVoteCountLabel.trailingAnchor, constant: Constants.Spacing.large),
+            
+            movieRevenueLabel.topAnchor.constraint(equalTo: movieVoteCountLabel.bottomAnchor, constant: Constants.Spacing.small),
+            movieRevenueLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
+            
+            movieOverviewLabel.topAnchor.constraint(equalTo: movieRevenueLabel.bottomAnchor, constant: Constants.Spacing.large),
+            movieOverviewLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
+            movieOverviewLabel.trailingAnchor.constraint(equalTo: movieDetailsContentView.trailingAnchor, constant: -Constants.Spacing.large),
+            movieOverviewLabel.bottomAnchor.constraint(equalTo: movieDetailsContentView.bottomAnchor, constant: -Constants.Spacing.large)
+        ])
+    }
+    
+    private func setupPlayerLayer() {
+        guard let player = playerViewModel.player else { return }
+        
+        playerLayer = AVPlayerLayer(player: player)
+        playerLayer?.videoGravity = .resizeAspect
+        
+        if let playerLayer = playerLayer {
+            playerContainerView.layer.addSublayer(playerLayer)
+        }
+    }
+    
+    private func setupGestures() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(playerViewTapped))
+        playerContainerView.addGestureRecognizer(tapGesture)
+    }
+    
+    private func setupMovieDetails() {
+        guard let viewModel = detailViewModel else { return }
+        
+        movieTitleLabel.text = viewModel.title
+        movieDateLabel.text = viewModel.date
+        movieVoteCountLabel.text = viewModel.voteCount
+        moviePopularityLabel.text = viewModel.popularity
+        movieOverviewLabel.text = viewModel.overview
+        
+        if let revenue = viewModel.revenue {
+            movieRevenueLabel.text = revenue
+            movieRevenueLabel.isHidden = false
+        } else {
+            movieRevenueLabel.isHidden = true
+        }
+    }
+    
+    
+    //MARK: Action
+    
+    @objc private func playPauseButtonTapped() {
+        playerViewModel.togglePlayPause()
+    }
+    @objc private func backwardsButtonTapped() {
+        playerViewModel.backward()
+    }
+    @objc private func forwardsButtonTapped() {
+        playerViewModel.forward()
+    }
+    @objc private func closeButtonTapped() {
+        dismiss(animated: true)
+    }
+    @objc private func fullscreenButtonTapped() {
+        let isLandscape = view.bounds.width > view.bounds.height
+        if isLandscape {
+            forceOrientation(.portrait)
+        } else {
+            forceOrientation(.landscapeRight)
+        }
+    }
+    @objc private func playerViewTapped() {
+        playerViewModel.toggleControlsVisibility()
+    }
+    @objc private func progressSliderChanged(_ slider: UISlider) {
+        playerViewModel.seek(to: slider.value)
+    }
+    @objc private func progressSliderTouchEnded(_ slider: UISlider) {
+        playerViewModel.seek(to: slider.value)
+    }
+    
+    
+    
+    
+    
+    private func updateLayoutForOrientation() { /// for device orientation
+        let isLandscape = view.bounds.width > view.bounds.height
+        
+        NSLayoutConstraint.deactivate(portraitConstraints + fullscreenConstraints + controlsConstraints)
+        
+        if isLandscape {
+            NSLayoutConstraint.activate(fullscreenConstraints + controlsConstraints)
+            movieDetailsScrollView.isHidden = true
+            view.backgroundColor = .black
+            fullscreenButton.setImage(UIImage(systemName: "arrow.down.right.and.arrow.up.left"), for: .normal)
+        } else {
+            NSLayoutConstraint.activate(portraitConstraints + controlsConstraints)
+            movieDetailsScrollView.isHidden = false
+            view.backgroundColor = .systemBackground
+            fullscreenButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
+        }
+    }
+    
+    private func forceOrientation(_ orientation: UIInterfaceOrientationMask) { /// for fullscreen button
+        guard let windowScene = view.window?.windowScene else { return }
+        
+        windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
     }
     
     
