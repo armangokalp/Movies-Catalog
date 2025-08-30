@@ -16,7 +16,8 @@ final class AppViewControllerFactory: ViewControllerFactory {
     
     func makeMovieListViewController() -> MovieListViewController {
         let apiService: MovieAPIService = container.resolve(MovieAPIService.self)
-        let viewModel = MovieListViewModel(apiService: apiService)
+        let cacheService: CacheServiceProtocol = container.resolve(CacheServiceProtocol.self)
+        let viewModel = MovieListViewModel(apiService: apiService, cacheService: cacheService)
         return MovieListViewController(viewModel: viewModel, factory: self)
     }
     

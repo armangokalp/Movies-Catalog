@@ -45,8 +45,10 @@ struct Constants {
     }
     
     struct Cache {
-        static let imageCountLimit: Int = 100
+        static let imageCountLimit: Int = 500
         static let imageTotalCostLimit: Int = 50 * 1024 * 1024
+        static let imagePerRequest: Int = 20
+        static let offlineCacheLimitPerCategory: Int = 40
     }
     
 }

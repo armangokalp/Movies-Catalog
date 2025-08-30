@@ -44,6 +44,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             ImageLoader()
         }
         
+        container.register(CacheServiceProtocol.self) {
+            CacheService()
+        }
+        
         container.register(ViewControllerFactory.self) {
             AppViewControllerFactory()
         }
