@@ -30,19 +30,22 @@ class ImageLoader: ImageLoadingService {
         }
         
         URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            guard let data = data, let image = UIImage(data: data) else {
+            guard let data = data,
+                  let image = UIImage(data: data) else {
                 DispatchQueue.main.async {
                     completion(nil)
                 }
                 return
             }
-            
+
             // Cache le
-            self?.cache.setObject(image, forKey: urlString as NSString)
-            
+            let cost = data.count
+            self?.cache.setObject(image, forKey: urlString as NSString, cost: cost)
+
             DispatchQueue.main.async {
                 completion(image)
             }
+
         }.resume()
     }
 }

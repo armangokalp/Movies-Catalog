@@ -15,6 +15,10 @@ class MovieDetailViewController: UIViewController {
     private let viewModel: MovieDetailViewModel
     private let factory: ViewControllerFactory
     
+    private var bgGradientLayer: CAGradientLayer?
+    private var backdropGradientLayer: CAGradientLayer?
+
+    
     // MARK: UI Components
     private lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -37,7 +41,7 @@ class MovieDetailViewController: UIViewController {
     
     private lazy var gradientView: UIView = {
         let view = UIView()
-        view.setGradientBackground([UIColor.clear, Constants.Colors.background])
+     //   _ = view.setGradientBackground([UIColor.clear, Constants.Colors.background])
         return view
     }()
     
@@ -125,7 +129,9 @@ class MovieDetailViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         configureWithMovie()
-        view.setGradientBackground([Constants.Colors.background,Constants.Colors.background, Constants.Colors.secondaryBackground])
+        
+        bgGradientLayer = view.setGradientBackground([Constants.Colors.background,Constants.Colors.background, Constants.Colors.secondaryBackground])
+        backdropGradientLayer = gradientView.setGradientBackground([UIColor.clear, Constants.Colors.background])
     }
     
     override func viewDidLayoutSubviews() {
@@ -253,9 +259,8 @@ class MovieDetailViewController: UIViewController {
     private func updateGradientFrame() {
         CATransaction.begin()
         CATransaction.setDisableActions(true) // disable animation
-        if let gradientLayer = gradientView.layer.sublayers?.first as? CAGradientLayer {
-            gradientLayer.frame = gradientView.bounds
-        }
+        bgGradientLayer?.frame = view.bounds
+        backdropGradientLayer?.frame = gradientView.bounds
         CATransaction.commit()
     }
     
@@ -263,7 +268,7 @@ class MovieDetailViewController: UIViewController {
     // MARK: Action
     @objc private func playButtonTapped() {
         let playerVC = factory.makeMoviePlayerViewController(viewModel: viewModel)
-        playerVC.modalPresentationStyle = .pageSheet
+        playerVC.modalPresentationStyle = .fullScreen
             
         
         present(playerVC, animated: true)

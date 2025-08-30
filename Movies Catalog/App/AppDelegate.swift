@@ -20,16 +20,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         
-        // PlayerView harici no orientation
-        if let rootViewController = window?.rootViewController {
-            if let presentedVC = rootViewController.presentedViewController,
-               presentedVC is MoviePlayerViewController {
-                
-                return .allButUpsideDown
+        // iPhone için PlayerView harici no orientation
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            if let rootViewController = window?.rootViewController {
+                if let presentedVC = rootViewController.presentedViewController,
+                   presentedVC is MoviePlayerViewController {
+                    
+                    return .allButUpsideDown
+                }
             }
+            return .portrait
         }
         
-        return .portrait
+        return .allButUpsideDown
     }
 
     // MARK: UISceneSession Lifecycle

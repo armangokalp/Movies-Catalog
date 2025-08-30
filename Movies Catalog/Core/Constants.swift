@@ -9,15 +9,24 @@ import UIKit
 
 struct Constants {
     
+    private static var activeTraits: UITraitCollection {
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = scene.windows.first(where: { $0.isKeyWindow }) {
+            return window.traitCollection
+        }
+        return UIScreen.main.traitCollection
+    }
+    private static var isPad: Bool { activeTraits.userInterfaceIdiom == .pad }
+
     struct Spacing {
-        static let tiny: CGFloat = 4
-        static let small: CGFloat = 8
-        static let medium: CGFloat = 12
-        static let large: CGFloat = 16
-        static let xLarge: CGFloat = 20
-        static let xxLarge: CGFloat = 24
-        static let xxxLarge: CGFloat = 32
-        static let huge: CGFloat = 50
+        static var tiny: CGFloat { Constants.isPad ? 6 : 4 }
+        static var small: CGFloat { Constants.isPad ? 12 : 8 }
+        static var medium: CGFloat { Constants.isPad ? 16 : 12 }
+        static var large: CGFloat { Constants.isPad ? 24 : 16 }
+        static var xLarge: CGFloat { Constants.isPad ? 28 : 20 }
+        static var xxLarge: CGFloat { Constants.isPad ? 32 : 24 }
+        static var xxxLarge: CGFloat { Constants.isPad ? 40 : 32 }
+        static var huge: CGFloat { Constants.isPad ? 64 : 50 }
     }
     
     struct CornerRadius {
@@ -28,15 +37,20 @@ struct Constants {
     }
     
     struct Dimensions {
-        static let posterWidth: CGFloat = 120
-        static let posterHeight: CGFloat = 200
-        static let backdropHeight: CGFloat = 250
-        static let detailPosterWidth: CGFloat = 100
-        static let detailPosterHeight: CGFloat = 150
-        static let buttonHeight: CGFloat = 50
-        static let closeButtonSize: CGFloat = 40
-        static let playButtonSize: CGFloat = 75
-        static let borderWidth: CGFloat = 3
+        static var posterSize: CGSize { Constants.isPad ? .init(width: 160, height: 260) : .init(width: 120, height: 200) }
+        static var posterWidth: CGFloat { posterSize.width }
+        static var posterHeight: CGFloat { posterSize.height }
+
+        static var backdropHeight: CGFloat { Constants.isPad ? 450 : 250 }
+
+        static var detailPosterSize: CGSize { Constants.isPad ? .init(width: 140, height: 210) : .init(width: 100, height: 150) }
+        static var detailPosterWidth: CGFloat { detailPosterSize.width }
+        static var detailPosterHeight: CGFloat { detailPosterSize.height }
+
+        static var buttonHeight: CGFloat { Constants.isPad ? 56 : 50 }
+        static var closeButtonSize: CGFloat { Constants.isPad ? 48 : 40 }
+        static var playButtonSize: CGFloat { Constants.isPad ? 84 : 75 }
+        static var borderWidth: CGFloat { Constants.isPad ? 4 : 3 }
     }
     
     struct Animation {
@@ -45,8 +59,10 @@ struct Constants {
     }
     
     struct Cache {
-        static let imageCountLimit: Int = 500
+        // NSCache
+        static let imageCountLimit: Int = 100
         static let imageTotalCostLimit: Int = 50 * 1024 * 1024
+        // Offline Cache
         static let imagePerRequest: Int = 20
         static let offlineCacheLimitPerCategory: Int = 40
     }
