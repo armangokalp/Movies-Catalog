@@ -15,6 +15,9 @@ class MovieListViewController: UIViewController {
     private let viewModel: MovieListViewModel
     private let factory: ViewControllerFactory
     
+    // For tablet split view
+    var onMovieSelected: ((Movie) -> Void)?
+    
     private var bgGradientLayer: CAGradientLayer?
     private var categories: [MovieCategory] = []
     private var diffableDataSource: UICollectionViewDiffableDataSource<MovieCategory, MovieItem>!
@@ -290,8 +293,14 @@ extension MovieListViewController: UICollectionViewDelegate {
         
         guard let movie = viewModel.getMovie(for: category, at: indexPath.item) else { return }
         
-        let detailVC = factory.makeMovieDetailViewController(movie: movie)
-        navigationController?.pushViewController(detailVC, animated: true)
+        if let onMovieSelected = onMovieSelected {
+            // Tablet
+            onMovieSelected(movie)
+        } else {
+            // Phone
+            let detailVC = factory.makeMovieDetailViewController(movie: movie)
+            navigationController?.pushViewController(detailVC, animated: true)
+        }
     }
 }
 

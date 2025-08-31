@@ -349,8 +349,9 @@ class MoviePlayerViewController: UIViewController {
             
             movieTitleLabel.topAnchor.constraint(equalTo: movieDetailsContentView.topAnchor, constant: Constants.Spacing.large),
             movieTitleLabel.leadingAnchor.constraint(equalTo: movieDetailsContentView.leadingAnchor, constant: Constants.Spacing.large),
+            movieTitleLabel.widthAnchor.constraint(lessThanOrEqualTo: movieDetailsContentView.widthAnchor, multiplier: detailViewModel?.date == "" ? 1 : 0.65, constant: -Constants.Spacing.large),
             
-            movieDateLabel.centerYAnchor.constraint(equalTo: movieTitleLabel.centerYAnchor),
+            movieDateLabel.topAnchor.constraint(equalTo: movieTitleLabel.topAnchor),
             movieDateLabel.trailingAnchor.constraint(equalTo: movieDetailsContentView.trailingAnchor, constant: -Constants.Spacing.large),
             movieDateLabel.leadingAnchor.constraint(greaterThanOrEqualTo: movieTitleLabel.trailingAnchor, constant: Constants.Spacing.medium),
             

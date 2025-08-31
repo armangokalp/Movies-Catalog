@@ -26,7 +26,7 @@ class MovieDetailViewModel {
     var backdropURL: String?    { return movie.fullBackdropURL }
     
     // for MoviePlayer info section
-    var date: String            { return "\(movie.releaseDate) 📅" }
+    var date: String            { return movie.releaseDate.isEmpty ? "" : "\(movie.releaseDate) 📅" }
     var voteCount: String       { return "\(movie.voteCount) votes" }
     var popularity: String      { return String(format: "%.1f popularity", movie.popularity) }
     var revenue: String?        { 

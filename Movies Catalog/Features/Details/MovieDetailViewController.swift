@@ -288,6 +288,7 @@ class MovieDetailViewController: UIViewController {
         CATransaction.begin()
         CATransaction.setDisableActions(true) // disable animation
         self.bgGradientLayer?.frame = self.view.bounds
+        
         self.backdropGradientLayer?.frame = self.gradientView.bounds
         CATransaction.commit()
     }

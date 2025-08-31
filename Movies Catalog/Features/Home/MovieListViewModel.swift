@@ -115,7 +115,6 @@ class MovieListViewModel {
                         self?.cacheService.saveMovies(moviesToCache, for: category)
                     }
                     
-                    let previousCount = existingMovies.count - response.results.count
                     self?.onCategoryUpdated?(category)
                 case .failure(let error):
                     self?.onError?("Failed to load more \(category.displayName): \(error.localizedDescription)")

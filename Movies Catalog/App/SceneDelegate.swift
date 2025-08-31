@@ -22,12 +22,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window = UIWindow(windowScene: windowScene)
         window?.overrideUserInterfaceStyle = .dark
         
+        // Set app-wide tint color
+        window?.tintColor = Constants.Colors.primary
+        
         // Use factory pattern to ensure proper dependency injection throughout the app
         let factory = AppViewControllerFactory()
-        let movieListVC = factory.makeMovieListViewController()
-        let navigationController = UINavigationController(rootViewController: movieListVC)
+        let rootViewController = factory.makeRootViewController()
         
-        window?.rootViewController = navigationController
+        window?.rootViewController = rootViewController
         window?.makeKeyAndVisible()
     }
     

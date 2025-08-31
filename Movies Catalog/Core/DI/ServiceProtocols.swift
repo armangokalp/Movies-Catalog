@@ -27,6 +27,8 @@ protocol NavigationService {
 
 
 protocol ViewControllerFactory {
+    func makeRootViewController() -> UIViewController
+    func makeTabletSplitViewController() -> TabletSplitViewController
     func makeMovieListViewController() -> MovieListViewController
     func makeMovieDetailViewController(movie: Movie) -> MovieDetailViewController
     func makeMoviePlayerViewController(viewModel: MovieDetailViewModel) -> MoviePlayerViewController

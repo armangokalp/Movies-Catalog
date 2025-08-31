@@ -75,26 +75,64 @@ class MoviePlayerViewModel: NSObject, ObservableObject {
     }
     
     func forward() {
-        seek(to: playbackProgress + 0.025)
+        seekBySeconds(15)
     }
     
     func backward() {
-        seek(to: playbackProgress - 0.025)
+        seekBySeconds(-15)
+    }
+    
+    private func seekBySeconds(_ seconds: Double) {
+        guard let currentTime = player?.currentTime(),
+              let duration = player?.currentItem?.duration,
+              CMTimeGetSeconds(duration) > 0 else { return }
+        
+        let currentSeconds = CMTimeGetSeconds(currentTime)
+        let newSeconds = max(0, min(currentSeconds + seconds, CMTimeGetSeconds(duration)))
+        let newTime = CMTime(seconds: newSeconds, preferredTimescale: currentTime.timescale)
+        
+        // Update UI immediately
+        updateUIForSeekTime(newTime, duration: duration)
+        
+        isSeeking = true
+        player?.seek(to: newTime) { [weak self] _ in
+            self?.isSeeking = false
+        }
+        
+        showControlsTemporarily()
     }
     
     func seek(to progress: Float) {
         guard let duration = player?.currentItem?.duration,
               CMTimeGetSeconds(duration) > 0 else { return }
         
-        isSeeking = true
         let totalSeconds = CMTimeGetSeconds(duration)
         let seekTime = CMTime(value: CMTimeValue(Double(progress) * totalSeconds), timescale: 1)
         
+        // Update UI immediately
+        updateUIForSeekTime(seekTime, duration: duration)
+        
+        isSeeking = true
         player?.seek(to: seekTime) { [weak self] _ in
             self?.isSeeking = false
         }
         
         showControlsTemporarily()
+    }
+    
+    private func updateUIForSeekTime(_ seekTime: CMTime, duration: CMTime) {
+        let currentSeconds = CMTimeGetSeconds(seekTime)
+        let totalSeconds = CMTimeGetSeconds(duration)
+        
+        let progress = Float(currentSeconds / totalSeconds)
+        let currentTimeString = formatTime(seekTime)
+        let durationString = formatTime(duration)
+        
+        playbackProgress = progress
+        currentTimeText = currentTimeString
+        durationText = durationString
+        
+        onProgressUpdated?(progress, currentTimeString, durationString)
     }
     
     func showControlsTemporarily() {

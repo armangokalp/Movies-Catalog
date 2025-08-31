@@ -14,6 +14,21 @@ final class AppViewControllerFactory: ViewControllerFactory {
         self.container = container
     }
     
+    func makeRootViewController() -> UIViewController {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            // iPad = split view controller
+            return makeTabletSplitViewController()
+        } else {
+            // iPhone = navigation controller
+            let movieListVC = makeMovieListViewController()
+            return UINavigationController(rootViewController: movieListVC)
+        }
+    }
+    
+    func makeTabletSplitViewController() -> TabletSplitViewController {
+        return TabletSplitViewController(factory: self)
+    }
+    
     func makeMovieListViewController() -> MovieListViewController {
         let apiService: MovieAPIService = container.resolve(MovieAPIService.self)
         let cacheService: CacheServiceProtocol = container.resolve(CacheServiceProtocol.self)

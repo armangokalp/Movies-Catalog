@@ -27,6 +27,7 @@ struct Constants {
         static var xxLarge: CGFloat { Constants.isPad ? 32 : 24 }
         static var xxxLarge: CGFloat { Constants.isPad ? 40 : 32 }
         static var huge: CGFloat { Constants.isPad ? 64 : 50 }
+        static var enormous: CGFloat { Constants.isPad ? 80 : 64 }
     }
     
     struct CornerRadius {
@@ -51,6 +52,12 @@ struct Constants {
         static var closeButtonSize: CGFloat { Constants.isPad ? 48 : 40 }
         static var playButtonSize: CGFloat { Constants.isPad ? 84 : 75 }
         static var borderWidth: CGFloat { Constants.isPad ? 4 : 3 }
+    }
+    
+    struct SplitView {
+        static var minimumPrimaryColumnWidth: CGFloat = 320
+        static var maximumPrimaryColumnWidth: CGFloat = 900
+        static var preferredPrimaryColumnWidthFraction: CGFloat = 0.5
     }
     
     struct Animation {
