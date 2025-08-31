@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Movie: Codable {
+struct Movie: Codable, Hashable {
     let id: Int
     let title: String
     let overview: String
@@ -55,6 +55,20 @@ struct Movie: Codable {
     
 }
 
+struct MovieItem: Hashable {
+    let movie: Movie
+    let category: MovieCategory
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(movie.id)
+        hasher.combine(category)
+    }
+    
+    static func == (lhs: MovieItem, rhs: MovieItem) -> Bool {
+        return lhs.movie.id == rhs.movie.id && lhs.category == rhs.category
+    }
+}
+
 
 struct MoviesResponse: Codable {
     let page: Int
@@ -88,3 +102,4 @@ enum MovieCategory: String, CaseIterable {
         }
     }
 }
+

@@ -18,6 +18,7 @@ class MovieListViewModel {
     
     // ui hooks
     var onDataUpdated: (() -> Void)?
+    var onCategoryUpdated: ((MovieCategory) -> Void)?
     var onError: ((String) -> Void)?
     var onLoadingStateChanged: ((Bool) -> Void)?
     
@@ -99,7 +100,12 @@ class MovieListViewModel {
                 case .success(let response):
                     self?.currentPages[category] = nextPage
                     var existingMovies = self?.moviesByCategory[category] ?? []
-                    existingMovies.append(contentsOf: response.results)
+                    
+                    // Filtering duplicates
+                    let existingIds = Set(existingMovies.map { $0.id })
+                    let newMovies = response.results.filter { !existingIds.contains($0.id) }
+                    existingMovies.append(contentsOf: newMovies)
+                    
                     self?.moviesByCategory[category] = existingMovies
                     self?.hasMorePages[category] = response.page < response.totalPages
                     
@@ -109,7 +115,8 @@ class MovieListViewModel {
                         self?.cacheService.saveMovies(moviesToCache, for: category)
                     }
                     
-                    self?.onDataUpdated?()
+                    let previousCount = existingMovies.count - response.results.count
+                    self?.onCategoryUpdated?(category)
                 case .failure(let error):
                     self?.onError?("Failed to load more \(category.displayName): \(error.localizedDescription)")
                 }

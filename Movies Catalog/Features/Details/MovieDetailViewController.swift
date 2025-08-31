@@ -83,7 +83,7 @@ class MovieDetailViewController: UIViewController {
     
     private lazy var playButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("▶ Play Movie", for: .normal)
+        button.setTitle("▶ Play Trailer", for: .normal)
         button.titleLabel?.font = Constants.Typography.semiboldHeadline()
         button.backgroundColor = Constants.Colors.primary
         button.setTitleColor(.white, for: .normal)
@@ -95,7 +95,11 @@ class MovieDetailViewController: UIViewController {
     
     private lazy var overviewTitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Overview"
+        if viewModel.overview == "" {
+            label.text = ""
+        } else {
+            label.text = "Overview"
+        }
         label.font = Constants.Typography.title3
         label.textColor = Constants.Colors.label
         label.adjustsFontForContentSizeCategory = true
@@ -154,12 +158,13 @@ class MovieDetailViewController: UIViewController {
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
+        super.viewDidAppear(animated)
 
         view.setNeedsLayout()
         view.layoutIfNeeded()
 
         self.updateGradientFrame()
+        
     }
 
     

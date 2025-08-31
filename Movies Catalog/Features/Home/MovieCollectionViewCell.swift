@@ -118,22 +118,26 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
       //  accessibilityLabel = "Movie: \(movie.title)" ///would not hurt to add
       //  accessibilityHint = "Double tap to view movie details"
         
-        loadingIndicator.startAnimating()
+        loadingIndicator.stopAnimating()
+        hideTitleOverlay()
         
         titleLabel.text = movie.title
-        hideTitleOverlay()
+        
+        loadingIndicator.startAnimating()
         
         posterImageView.loadImage(
             from: movie.fullPosterURL
         ) { [weak self] loaded in
             DispatchQueue.main.async {
                 self?.loadingIndicator.stopAnimating()
-                // Overlay if not loaded
-                let hasImage = (loaded != nil) || (self?.posterImageView.image != nil)
-                hasImage ? self?.hideTitleOverlay() : self?.showTitleOverlay()
+                
+                if loaded != nil {
+                    self?.hideTitleOverlay()
+                } else {
+                    self?.showTitleOverlay()
+                }
             }
         }
-
     }
     
     private func showTitleOverlay() {
@@ -145,10 +149,13 @@ class MovieCollectionViewCell: UICollectionViewCell, Configurable, Reusable {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        
+        posterImageView.cancelCurrentImageLoad()
         posterImageView.image = nil
         loadingIndicator.stopAnimating()
-        accessibilityLabel = nil
-        accessibilityHint = nil
+        hideTitleOverlay()
+       // accessibilityLabel = nil
+       // accessibilityHint = nil
     }
     
    /* override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {

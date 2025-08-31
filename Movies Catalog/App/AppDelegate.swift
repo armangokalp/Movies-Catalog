@@ -32,7 +32,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             return .portrait
         }
         
-        return .allButUpsideDown
+        return .all
     }
 
     // MARK: UISceneSession Lifecycle

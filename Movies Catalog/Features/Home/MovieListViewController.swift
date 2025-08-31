@@ -16,8 +16,8 @@ class MovieListViewController: UIViewController {
     private let factory: ViewControllerFactory
     
     private var bgGradientLayer: CAGradientLayer?
-    private var dataSource: [MovieCategory] = []
-
+    private var categories: [MovieCategory] = []
+    private var diffableDataSource: UICollectionViewDiffableDataSource<MovieCategory, MovieItem>!
     
     // MARK: UI components
     private lazy var collectionView: UICollectionView = {
@@ -26,7 +26,6 @@ class MovieListViewController: UIViewController {
         collectionView.showsVerticalScrollIndicator = false
         collectionView.register(MovieCollectionViewCell.self, forCellWithReuseIdentifier: MovieCollectionViewCell.identifier)
         collectionView.register(CategoryHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: CategoryHeaderView.identifier)
-        collectionView.dataSource = self
         collectionView.delegate = self
         return collectionView
     }()
@@ -124,9 +123,9 @@ class MovieListViewController: UIViewController {
             guard let self = self else { return }
             
             let sectionIndex = visibleItems.first?.indexPath.section ?? 0
-            guard sectionIndex < self.dataSource.count else { return }
+            guard sectionIndex < self.categories.count else { return }
             
-            let category = self.dataSource[sectionIndex]
+            let category = self.categories[sectionIndex]
             let maxIndex = visibleItems.map { $0.indexPath.item }.max() ?? 0
             
             if self.viewModel.shouldLoadMore(for: category, at: maxIndex) {
@@ -154,9 +153,12 @@ class MovieListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupDiffableDataSource()
         setupBindings()
         viewModel.loadMovies()
         bgGradientLayer = view.setGradientBackground([Constants.Colors.background, Constants.Colors.secondaryBackground])
+        
+        categories = MovieCategory.allCases
     }
     
     override func viewDidLayoutSubviews() {
@@ -207,8 +209,12 @@ class MovieListViewController: UIViewController {
             self?.updateDataSource()
         }
         
+        viewModel.onCategoryUpdated = { [weak self] category in
+            self?.updateCategory(category)
+        }
+        
         viewModel.onError = { errorMessage in
-            print(errorMessage) // TODO: Could give in-app feedback
+            print(errorMessage) // Could give in-app feedback
         }
         
         viewModel.onLoadingStateChanged = { [weak self] isLoading in
@@ -222,62 +228,65 @@ class MovieListViewController: UIViewController {
         }
     }
     
-    private func updateDataSource() {
-        dataSource = MovieCategory.allCases.filter { category in
-            !viewModel.getMovies(for: category).isEmpty
-        }
-        collectionView.reloadData()
-    }
-}
-
-
-extension MovieListViewController: UICollectionViewDataSource {
-    func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return dataSource.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        guard section < dataSource.count else { return 0 }
-        let category = dataSource[section]
-        return viewModel.getMovies(for: category).count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MovieCollectionViewCell.identifier, for: indexPath) as! MovieCollectionViewCell
-        
-        guard indexPath.section < dataSource.count else { return cell }
-        let category = dataSource[indexPath.section]
-        
-        guard let movie = viewModel.getMovie(for: category, at: indexPath.item) else {
+    private func setupDiffableDataSource() {
+        diffableDataSource = UICollectionViewDiffableDataSource<MovieCategory, MovieItem>(
+            collectionView: collectionView
+        ) { collectionView, indexPath, movieItem in
+            let cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: MovieCollectionViewCell.identifier,
+                for: indexPath
+            ) as! MovieCollectionViewCell
+            cell.configure(with: movieItem.movie)
             return cell
         }
         
-        cell.configure(with: movie)
-        return cell
+        diffableDataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
+            guard kind == UICollectionView.elementKindSectionHeader else {
+                return UICollectionReusableView()
+            }
+            
+            let headerView = collectionView.dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier: CategoryHeaderView.identifier,
+                for: indexPath
+            ) as! CategoryHeaderView
+            
+            let category = self.categories[indexPath.section]
+            headerView.configure(with: category.displayName)
+            return headerView
+        }
     }
     
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        guard kind == UICollectionView.elementKindSectionHeader,
-              indexPath.section < dataSource.count else {
-            return UICollectionReusableView()
+    private func updateDataSource() {
+        categories = MovieCategory.allCases
+        applySnapshot()
+    }
+    
+    private func updateCategory(_ category: MovieCategory) {
+        applySnapshot()
+    }
+    
+    private func applySnapshot() {
+        var snapshot = NSDiffableDataSourceSnapshot<MovieCategory, MovieItem>()
+        
+        for category in categories {
+            snapshot.appendSections([category])
+            let movies = viewModel.getMovies(for: category)
+            let movieItems = movies.map { MovieItem(movie: $0, category: category) }
+            snapshot.appendItems(movieItems, toSection: category)
         }
         
-        let headerView = collectionView.dequeueReusableSupplementaryView(
-            ofKind: kind,
-            withReuseIdentifier: CategoryHeaderView.identifier,
-            for: indexPath
-        ) as! CategoryHeaderView
-        
-        let category = dataSource[indexPath.section]
-        headerView.configure(with: category.displayName)
-        return headerView
+        diffableDataSource.apply(snapshot, animatingDifferences: false)
     }
+
 }
+
+
 
 extension MovieListViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard indexPath.section < dataSource.count else { return }
-        let category = dataSource[indexPath.section]
+        guard indexPath.section < categories.count else { return }
+        let category = categories[indexPath.section]
         
         guard let movie = viewModel.getMovie(for: category, at: indexPath.item) else { return }
         

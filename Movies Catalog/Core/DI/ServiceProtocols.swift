@@ -13,7 +13,8 @@ protocol MovieAPIService {
 }
 
 protocol ImageLoadingService {
-    func loadImage(from urlString: String, completion: @escaping (UIImage?) -> Void)
+    @discardableResult
+    func loadImage(from urlString: String, completion: @escaping (UIImage?) -> Void) -> URLSessionDataTask?
 }
 
 
