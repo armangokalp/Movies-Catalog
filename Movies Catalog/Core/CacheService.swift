@@ -7,6 +7,10 @@
 
 // Offline cache for movie info (no image)
 
+
+//  If we also want to store images in the future, the best approach is to save them with FileManager (storing only file paths in CoreData) instead of persisting raw image data directly.
+//  This would keep the database lightweight and improve performance.
+
 import Foundation
 
 protocol CacheServiceProtocol {
