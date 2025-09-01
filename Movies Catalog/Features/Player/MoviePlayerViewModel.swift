@@ -7,6 +7,7 @@
 
 import Foundation
 import AVFoundation
+import AVKit
 import Combine
 
 // Handles AVPlayer logic and state management
@@ -15,6 +16,8 @@ class MoviePlayerViewModel: NSObject, ObservableObject {
     private let videoURL = URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8")!
     private var timeObserver: Any?
     private var controlsTimer: Timer?
+    private var pictureInPictureController: AVPictureInPictureController?
+    private var playerLayer: AVPlayerLayer?
     
     @Published var isPlaying: Bool = false
     @Published var playbackProgress: Float = 0.0
@@ -23,10 +26,13 @@ class MoviePlayerViewModel: NSObject, ObservableObject {
     @Published var isSeeking: Bool = false
     @Published var controlsVisible: Bool = false
     @Published var isPlayerReady: Bool = false
+    @Published var isPictureInPictureSupported: Bool = false
+    @Published var isPictureInPictureActive: Bool = false
     
     var onPlayerReady: (() -> Void)?
     var onPlaybackStateChanged: ((Bool) -> Void)?
     var onProgressUpdated: ((Float, String, String) -> Void)?
+    var onPictureInPictureStateChanged: ((Bool) -> Void)?
     
     override init() {
         super.init()
@@ -40,15 +46,35 @@ class MoviePlayerViewModel: NSObject, ObservableObject {
     private func setupPlayer() {
         player = AVPlayer(url: videoURL)
         
-        // Add time observer for progress updates
         let interval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         timeObserver = player?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] _ in
             self?.updateProgress()
         }
         
-        // Observe player status
         player?.addObserver(self, forKeyPath: "status", options: .new, context: nil)
         player?.addObserver(self, forKeyPath: "currentItem.duration", options: .new, context: nil)
+    }
+    
+    func setupPictureInPicture(with playerLayer: AVPlayerLayer) {
+        self.playerLayer = playerLayer
+        
+        // Check if PiP is supported
+        isPictureInPictureSupported = AVPictureInPictureController.isPictureInPictureSupported()
+        print("PiP supported: \(isPictureInPictureSupported)")
+        
+        if isPictureInPictureSupported {
+            pictureInPictureController = AVPictureInPictureController(playerLayer: playerLayer)
+            pictureInPictureController?.delegate = self
+        }
+    }
+    
+    func startPictureInPicture() {
+        guard isPictureInPictureSupported else { return }
+        pictureInPictureController?.startPictureInPicture()
+    }
+    
+    func stopPictureInPicture() {
+        pictureInPictureController?.stopPictureInPicture()
     }
     
     
@@ -75,11 +101,11 @@ class MoviePlayerViewModel: NSObject, ObservableObject {
     }
     
     func forward() {
-        seekBySeconds(15)
+        seekBySeconds(10)
     }
     
     func backward() {
-        seekBySeconds(-15)
+        seekBySeconds(-10)
     }
     
     private func seekBySeconds(_ seconds: Double) {
@@ -206,6 +232,10 @@ class MoviePlayerViewModel: NSObject, ObservableObject {
         player?.removeObserver(self, forKeyPath: "status")
         player?.removeObserver(self, forKeyPath: "currentItem.duration")
         player?.pause()
+        
+        pictureInPictureController?.delegate = nil
+        pictureInPictureController = nil
+        playerLayer = nil
         player = nil
     }
 }
@@ -226,5 +256,36 @@ extension MoviePlayerViewModel {  // KVO Observer
                 self.updateProgress()
             }
         }
+    }
+}
+
+extension MoviePlayerViewModel: AVPictureInPictureControllerDelegate {
+    func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        isPictureInPictureActive = true
+        onPictureInPictureStateChanged?(true)
+    }
+    
+    func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        print("PiP has started successfully")
+    }
+    
+    func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
+        isPictureInPictureActive = false
+        onPictureInPictureStateChanged?(false)
+        print("Failed to start Picture in Picture: \(error.localizedDescription)")
+    }
+    
+    func pictureInPictureControllerWillStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        isPictureInPictureActive = false
+        onPictureInPictureStateChanged?(false)
+    }
+    
+    func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        print("PiP has stopped")
+    }
+    
+    func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
+        print("App reopen fron the pip window")
+        completionHandler(true)
     }
 }

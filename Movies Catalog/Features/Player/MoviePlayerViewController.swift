@@ -87,7 +87,7 @@ class MoviePlayerViewController: UIViewController {
         let label = UILabel()
         label.text = "00:00"
         label.textColor = .white
-        label.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
+        label.font = Constants.Typography.caption1
         label.adjustsFontForContentSizeCategory = true
         return label
     }()
@@ -96,7 +96,7 @@ class MoviePlayerViewController: UIViewController {
         let label = UILabel()
         label.text = "00:00"
         label.textColor = .white
-        label.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
+        label.font = Constants.Typography.caption1
         label.adjustsFontForContentSizeCategory = true
         return label
     }()
@@ -107,6 +107,26 @@ class MoviePlayerViewController: UIViewController {
         button.tintColor = .white
         button.addTarget(self, action: #selector(fullscreenButtonTapped), for: .touchUpInside)
         return button
+    }()
+    
+    private lazy var pipButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "pip.enter"), for: .normal)
+        button.tintColor = .white
+        button.backgroundColor = Constants.Colors.controlsBackground
+        button.layer.cornerRadius = Constants.CornerRadius.medium
+        button.addTarget(self, action: #selector(pipButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var titleInPlayer: UILabel = {
+        let label = UILabel()
+        label.text = detailViewModel?.title ?? ""
+        label.font = Constants.Typography.title3
+        label.textColor = .white
+        label.numberOfLines = 0
+        label.alpha = 0
+        return label
     }()
     
     private lazy var movieDetailsScrollView: UIScrollView = {
@@ -123,7 +143,7 @@ class MoviePlayerViewController: UIViewController {
     
     private lazy var movieTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.boldSystemFont(ofSize: 24)
+        label.font = Constants.Typography.title1
         label.textColor = .label
         label.numberOfLines = 0
         return label
@@ -131,7 +151,7 @@ class MoviePlayerViewController: UIViewController {
     
     private lazy var movieDateLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 16)
+        label.font = Constants.Typography.body
         label.textColor = .secondaryLabel
         label.textAlignment = .right
         return label
@@ -139,28 +159,28 @@ class MoviePlayerViewController: UIViewController {
     
     private lazy var movieVoteCountLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 14)
+        label.font = Constants.Typography.caption1
         label.textColor = .secondaryLabel
         return label
     }()
     
     private lazy var moviePopularityLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 14)
+        label.font = Constants.Typography.caption1
         label.textColor = .secondaryLabel
         return label
     }()
     
     private lazy var movieRevenueLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 14)
+        label.font = Constants.Typography.caption1
         label.textColor = .secondaryLabel
         return label
     }()
     
     private lazy var movieOverviewLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 16)
+        label.font = Constants.Typography.body
         label.textColor = .label
         label.numberOfLines = 0
         return label
@@ -226,6 +246,8 @@ class MoviePlayerViewController: UIViewController {
         view.addSubview(playerContainerView)
         view.addSubview(controlsContainerView)
         view.addSubview(closeButton)
+        view.addSubview(titleInPlayer)
+        view.addSubview(pipButton)
         view.addSubview(movieDetailsScrollView)
         
         movieDetailsScrollView.addSubview(movieDetailsContentView)
@@ -248,9 +270,9 @@ class MoviePlayerViewController: UIViewController {
     }
     
     private func setupConstraints() {
-        [playerContainerView, controlsContainerView, closeButton, playPauseButton, 
-         backTrackButton, forwardButton, progressSlider, currentTimeLabel, 
-         durationLabel, fullscreenButton, movieDetailsScrollView, movieDetailsContentView,
+        [playerContainerView, controlsContainerView, closeButton, titleInPlayer, playPauseButton,
+         backTrackButton, forwardButton, progressSlider, currentTimeLabel,
+         durationLabel, fullscreenButton, pipButton, movieDetailsScrollView, movieDetailsContentView,
          movieTitleLabel, movieDateLabel, movieVoteCountLabel, moviePopularityLabel, 
          movieRevenueLabel, movieOverviewLabel].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -279,7 +301,15 @@ class MoviePlayerViewController: UIViewController {
             closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
             closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.Spacing.large),
             closeButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
-            closeButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize)
+            closeButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
+            
+            titleInPlayer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
+            titleInPlayer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            
+            pipButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
+            pipButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: Constants.Spacing.large),
+            pipButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
+            pipButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize)
         ]
         
         // Fullscreen
@@ -297,7 +327,15 @@ class MoviePlayerViewController: UIViewController {
             closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
             closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -Constants.Spacing.large),
             closeButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
-            closeButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize)
+            closeButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
+            
+            titleInPlayer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
+            titleInPlayer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            
+            pipButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Constants.Spacing.large),
+            pipButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: Constants.Spacing.large),
+            pipButton.widthAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize),
+            pipButton.heightAnchor.constraint(equalToConstant: Constants.Dimensions.closeButtonSize)
         ]
         
         
@@ -382,6 +420,15 @@ class MoviePlayerViewController: UIViewController {
         }
     }
     
+    private func setupPictureInPicture() {
+        guard let playerLayer = playerLayer else { 
+            print("PlayerLayer is nil in setupPictureInPicture")
+            return 
+        }
+        print("Setting up PiP with playerLayer")
+        playerViewModel.setupPictureInPicture(with: playerLayer)
+    }
+    
     private func setupGestures() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(playerViewTapped))
         playerContainerView.addGestureRecognizer(tapGesture)
@@ -436,6 +483,12 @@ class MoviePlayerViewController: UIViewController {
     @objc private func progressSliderTouchEnded(_ slider: UISlider) {
         playerViewModel.seek(to: slider.value)
     }
+    @objc private func pipButtonTapped() {
+        print("PiP button tapped!")
+        print("PiP supported: \(playerViewModel.isPictureInPictureSupported)")
+        print("Player ready: \(playerViewModel.isPlayerReady)")
+        playerViewModel.startPictureInPicture()
+    }
     
     
     
@@ -451,11 +504,13 @@ class MoviePlayerViewController: UIViewController {
             movieDetailsScrollView.isHidden = true
             view.backgroundColor = .black
             fullscreenButton.setImage(UIImage(systemName: "arrow.down.right.and.arrow.up.left"), for: .normal)
+            titleInPlayer.alpha = 1
         } else {
             NSLayoutConstraint.activate(portraitConstraints + controlsConstraints)
             movieDetailsScrollView.isHidden = false
             view.backgroundColor = .systemBackground
             fullscreenButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
+            titleInPlayer.alpha = 0
         }
     }
     
@@ -505,13 +560,33 @@ class MoviePlayerViewController: UIViewController {
         
         playerViewModel.onPlayerReady = { [weak self] in
             self?.playerViewModel.play()
+            self?.setupPictureInPicture()
         }
+        
+        playerViewModel.$isPictureInPictureSupported
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isSupported in
+                self?.pipButton.isHidden = !isSupported
+            }
+            .store(in: &cancellables)
+        
+        playerViewModel.$isPictureInPictureActive
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isActive in
+                let imageName = isActive ? "pip.exit" : "pip.enter"
+                self?.pipButton.setImage(UIImage(systemName: imageName), for: .normal)
+            }
+            .store(in: &cancellables)
     }
     
     private func animateControlsVisibility(isVisible: Bool) {
+        let isLandscape = view.bounds.width > view.bounds.height
+        
         UIView.animate(withDuration: Constants.Animation.defaultDuration) {
             self.controlsContainerView.alpha = isVisible ? 1 : 0
             self.closeButton.alpha = isVisible ? 1 : 0
+            self.pipButton.alpha = isVisible ? 1 : 0
+            self.titleInPlayer.alpha = (isVisible && isLandscape) ? 1 : 0
         }
     }
 }
