@@ -504,7 +504,6 @@ class MoviePlayerViewController: UIViewController {
             movieDetailsScrollView.isHidden = true
             view.backgroundColor = .black
             fullscreenButton.setImage(UIImage(systemName: "arrow.down.right.and.arrow.up.left"), for: .normal)
-            titleInPlayer.alpha = 1
         } else {
             NSLayoutConstraint.activate(portraitConstraints + controlsConstraints)
             movieDetailsScrollView.isHidden = false
